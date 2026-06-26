@@ -21,7 +21,7 @@ def render() -> None:
                  style="position:absolute;top:50%;right:-10px;
                         transform:translateY(-50%);
                         height:160px;width:auto;
-                        opacity:0.18;pointer-events:none;
+                        opacity:0.45;pointer-events:none;
                         filter:brightness(10)"
                  aria-hidden="true" />
             <div style="color:{GOLD};font-size:0.72rem;font-weight:700;
@@ -47,7 +47,7 @@ def render() -> None:
         unsafe_allow_html=True,
     )
 
-    # ── Stats row ────────────────────────────────────────────────────────────────────────────
+    # ── Stats row ──────────────────────────────────────────────────────────────
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(
@@ -82,7 +82,7 @@ def render() -> None:
             unsafe_allow_html=True,
         )
 
-    # ── Pipeline overview ──────────────────────────────────────────────────────────────────
+    # ── Pipeline overview ──────────────────────────────────────────────────────
     section_bar("The 19-Stage Pipeline")
 
     stages_info = [
@@ -130,7 +130,7 @@ def render() -> None:
                 unsafe_allow_html=True,
             )
 
-    # ── How it works ────────────────────────────────────────────────────────────────────
+    # ── How it works ──────────────────────────────────────────────────────────
     section_bar("How It Works")
     banner(
         "📌 <strong>Demo mode:</strong> This is a public testing instance. "
