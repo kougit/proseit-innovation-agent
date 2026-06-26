@@ -62,7 +62,7 @@ def _stage_dl_row(stage: str, content: str, title: str, key_prefix: str) -> None
         )
 
     ncols = 1 + (1 if stage in EXCEL_STAGES else 0) + (1 if stage in PPTX_STAGES else 0) + 1
-    cols = st.columns(ncols + [2])  # trailing spacer
+    cols = st.columns([1] * ncols + [2])  # trailing spacer
     ci = 0
     slug = title[:28].replace(" ", "_")
     try:
@@ -234,7 +234,6 @@ def render() -> None:
                 content = results.get(stage, "")
                 slabel = STAGE_LABELS.get(stage, stage)
                 with st.expander(slabel, expanded=(stage == sts[0])):
-                    # UIX stage: show file inventory instead of raw content
                     if stage in UIX_STAGES:
                         files = parse_uix_files(content)
                         if files:
