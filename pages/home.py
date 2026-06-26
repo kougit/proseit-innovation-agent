@@ -18,7 +18,7 @@ def render() -> None:
         f"""
         <div class="ps-hero" style="position:relative;overflow:hidden">
             <img src="data:image/svg+xml;base64,{logo}"
-                 style="position:absolute;top:50%;right:-10px;
+                 style="position:absolute;top:50%;right:40px;
                         transform:translateY(-50%);
                         height:160px;width:auto;
                         opacity:0.45;pointer-events:none;
