@@ -1,33 +1,128 @@
 """ProSEIT Innovation Agent — Results viewer page."""
 from __future__ import annotations
 import io
-import zipfile
+import json
 import streamlit as st
 from pipeline.runner import STAGE_LABELS
-from ui.brand import NAVY, GOLD, WHITE, GREEN
-from ui.components import page_title, section_bar, banner, page_footer, badge
+from pipeline.document_builder import (
+    STAGE_DELIVERABLES, EXCEL_STAGES, PPTX_STAGES,
+    build_word_doc, build_excel_doc, build_pptx_doc,
+    build_stage_zip, build_full_zip,
+)
+from ui.brand import NAVY, GOLD, WHITE
+from ui.components import page_title, section_bar, banner, page_footer
+
+_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+_PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
 
-def _build_zip(results: dict[str, str], title: str) -> bytes:
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for stage, content in results.items():
-            label = STAGE_LABELS.get(stage, stage).replace(" · ", "_").replace(" ", "_")
-            zf.writestr(f"{label}.md", content)
-        index_lines = [f"# {title} — Innovation Package\n"] + [
-            f"- {STAGE_LABELS.get(s, s)}" for s in results
-        ]
-        zf.writestr("INDEX.md", "\n".join(index_lines))
-    return buf.getvalue()
+def _save_json(results: dict, title: str, idea: str) -> bytes:
+    return json.dumps(
+        {"innov_title": title, "innov_idea": idea, "innov_results": results},
+        ensure_ascii=False, indent=2,
+    ).encode("utf-8")
+
+
+def _stage_dl_row(stage: str, content: str, title: str, key_prefix: str) -> None:
+    lbl = STAGE_LABELS.get(stage, stage)
+    deliverables = STAGE_DELIVERABLES.get(stage, ["Word (.docx)"])
+    st.markdown(
+        f'<div style="font-size:0.85rem;font-weight:700;color:{NAVY};'
+        f'padding:0.5rem 0 0.15rem">{lbl}</div>'
+        f'<div style="font-size:0.72rem;color:rgba(36,54,75,0.5);'
+        f'margin-bottom:0.35rem">{" · ".join(deliverables)}</div>',
+        unsafe_allow_html=True,
+    )
+    ncols = 1 + (1 if stage in EXCEL_STAGES else 0) + (1 if stage in PPTX_STAGES else 0) + 1
+    cols = st.columns(ncols + [2])  # trailing spacer
+    ci = 0
+    slug = title[:28].replace(" ", "_")
+    try:
+        with cols[ci]:
+            st.download_button(
+                "📄 Word",
+                data=build_word_doc(stage, lbl, content, title),
+                file_name=f"{stage}_{slug}.docx",
+                mime=_DOCX_MIME,
+                key=f"{key_prefix}_w_{stage}",
+                use_container_width=True,
+            )
+        ci += 1
+    except Exception:
+        pass
+    if stage in EXCEL_STAGES:
+        try:
+            with cols[ci]:
+                st.download_button(
+                    "📊 Excel",
+                    data=build_excel_doc(stage, lbl, content, title),
+                    file_name=f"{stage}_{slug}.xlsx",
+                    mime=_XLSX_MIME,
+                    key=f"{key_prefix}_x_{stage}",
+                    use_container_width=True,
+                )
+            ci += 1
+        except Exception:
+            pass
+    if stage in PPTX_STAGES:
+        try:
+            with cols[ci]:
+                st.download_button(
+                    "🎥 PowerPoint",
+                    data=build_pptx_doc(stage, lbl, content, title),
+                    file_name=f"{stage}_{slug}.pptx",
+                    mime=_PPTX_MIME,
+                    key=f"{key_prefix}_p_{stage}",
+                    use_container_width=True,
+                )
+            ci += 1
+        except Exception:
+            pass
+    try:
+        with cols[ci]:
+            st.download_button(
+                "🗂️ ZIP",
+                data=build_stage_zip(stage, lbl, content, title),
+                file_name=f"{stage}.zip",
+                mime="application/zip",
+                key=f"{key_prefix}_z_{stage}",
+                use_container_width=True,
+            )
+    except Exception:
+        pass
+    st.markdown('<hr style="margin:0.4rem 0;opacity:0.15">', unsafe_allow_html=True)
 
 
 def render() -> None:
     results: dict[str, str] = st.session_state.get("innov_results", {})
-    title = st.session_state.get("innov_results_title", "Innovation Package")
+    title: str = st.session_state.get("innov_results_title", "Innovation Package")
+    idea: str = st.session_state.get("innov_idea", "")
 
     if not results:
         page_title("Results", "No results loaded.")
-        banner("No pipeline results found. Run the pipeline on the New Innovation page first.", kind="warning")
+        banner(
+            "No pipeline results found. Run the pipeline on the New Innovation page, "
+            "or upload a saved progress file below.",
+            kind="warning",
+        )
+        section_bar("Resume from Saved Progress")
+        uploaded = st.file_uploader(
+            "Upload a saved progress file (.json)",
+            type=["json"],
+            key="resume_upload",
+        )
+        if uploaded:
+            try:
+                saved = json.loads(uploaded.read().decode("utf-8"))
+                st.session_state["innov_results"] = saved.get("innov_results", {})
+                st.session_state["innov_results_title"] = saved.get("innov_title", "Innovation")
+                st.session_state["innov_idea"] = saved.get("innov_idea", "")
+                n = len(st.session_state["innov_results"])
+                st.success(f"Loaded {n} completed stage(s). Reloading…")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Could not load file: {e}")
         if st.button("➕ Start New Innovation", type="primary"):
             st.switch_page("pages/new_innovation.py")
         page_footer()
@@ -37,28 +132,49 @@ def render() -> None:
 
     st.markdown(
         f'<div class="ps-dl-bar"><div>'
-        f'<div style="color:{GOLD};font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase">Innovation Package Ready</div>'
-        f'<div style="color:{WHITE};font-weight:600;font-size:0.95rem;margin-top:0.15rem">{title}</div>'
-        f'<div style="color:rgba(255,255,255,0.5);font-size:0.75rem;margin-top:0.1rem">{len(results)} stage outputs</div>'
+        f'<div style="color:{GOLD};font-size:0.68rem;font-weight:700;'
+        f'letter-spacing:0.12em;text-transform:uppercase">Innovation Package Ready</div>'
+        f'<div style="color:{WHITE};font-weight:600;font-size:0.95rem;margin-top:0.15rem">'
+        f'{title}</div>'
+        f'<div style="color:rgba(255,255,255,0.5);font-size:0.75rem;margin-top:0.1rem">'
+        f'{len(results)} stage(s) · Word, Excel & PowerPoint formats</div>'
         f'</div></div>',
         unsafe_allow_html=True,
     )
-    st.download_button(
-        "⬇️ Download Full Package (ZIP)",
-        data=_build_zip(results, title),
-        file_name=f"{title.lower().replace(' ', '_')}_innovation_package.zip",
-        mime="application/zip",
-        type="primary",
-    )
+
+    c_dl, c_save, _ = st.columns([2, 2, 3])
+    with c_dl:
+        try:
+            st.download_button(
+                "⬇️ Download Full Package (ZIP)",
+                data=build_full_zip(results, STAGE_LABELS, title),
+                file_name=f"{title.lower().replace(' ', '_')}_proseit_package.zip",
+                mime="application/zip",
+                type="primary",
+            )
+        except Exception as e:
+            st.error(f"ZIP error: {e}")
+    with c_save:
+        st.download_button(
+            "💾 Save Progress (.json)",
+            data=_save_json(results, title, idea),
+            file_name=f"{title.lower().replace(' ', '_')}_progress.json",
+            mime="application/json",
+        )
+
     st.markdown("---")
 
     stage_keys = list(results.keys())
     tab_defs = [
         ("📋 Overview",    [s for s in stage_keys if s in ("00_intake", "01_policy", "02_concept")]),
-        ("⚙️ Technical",   [s for s in stage_keys if s in ("04_architecture", "05_user_stories", "06_ux_wireframes", "07_data_model", "08_api_design", "09_integrations", "10_security", "11_testing", "12_deployment")]),
+        ("⚙️ Technical",   [s for s in stage_keys if s in (
+            "04_architecture", "05_user_stories", "06_ux_wireframes",
+            "07_data_model", "08_api_design", "09_integrations",
+            "10_security", "11_testing", "12_deployment")]),
         ("📦 Editions",    [s for s in stage_keys if s in ("03_editions",)]),
-        ("💼 Business",    [s for s in stage_keys if s in ("13_documentation", "14_budget", "15_business_plan")]),
-        ("🏛️ Governance", [s for s in stage_keys if s in ("16_governance",)]),
+        ("\ud83d� Business",    [s for s in stage_keys if s in (
+            "13_documentation", "14_budget", "15_business_plan")]),
+        ("🏗️ Governance", [s for s in stage_keys if s in ("16_governance",)]),
         ("🗺️ Roadmap",    [s for s in stage_keys if s in ("17_roadmap", "18_package")]),
         ("⬇️ Downloads",  []),
     ]
@@ -70,34 +186,37 @@ def render() -> None:
     for tab, (label, sts) in zip(tabs, active_tabs):
         with tab:
             if label == "⬇️ Downloads":
-                section_bar("Download Individual Stages")
+                section_bar("Download Individual Stage Deliverables")
+                banner(
+                    "Each stage is available as a branded <strong>Word document</strong>. "
+                    "Data-heavy stages also include <strong>Excel</strong>. "
+                    "Key stages include <strong>PowerPoint</strong>. "
+                    "Download a single format or the per-stage ZIP.",
+                    kind="info",
+                )
                 for stage, content in results.items():
-                    lbl2 = STAGE_LABELS.get(stage, stage)
-                    c1, c2 = st.columns([4, 1])
-                    with c1:
-                        st.markdown(f'<div style="font-size:0.85rem;font-weight:600;color:{NAVY};padding:0.4rem 0">{lbl2}</div>', unsafe_allow_html=True)
-                    with c2:
-                        st.download_button("⬇️ .md", data=content, file_name=f"{stage}.md", mime="text/markdown", key=f"dl_i_{stage}", use_container_width=True)
+                    _stage_dl_row(stage, content, title, "dl")
                 continue
+
             if not sts:
                 st.info("No stages in this category were run.")
                 continue
+
             for stage in sts:
                 content = results.get(stage, "")
-                stage_label = STAGE_LABELS.get(stage, stage)
-                with st.expander(stage_label, expanded=(stage == sts[0])):
+                slabel = STAGE_LABELS.get(stage, stage)
+                with st.expander(slabel, expanded=(stage == sts[0])):
                     st.markdown(content)
-                    st.download_button(
-                        f"⬇️ Download {stage_label.split(' · ')[1]}",
-                        data=content,
-                        file_name=f"{stage}_{title.lower().replace(' ', '_')}.md",
-                        mime="text/markdown",
-                        key=f"dl_s_{stage}",
-                    )
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    _stage_dl_row(stage, content, title, f"exp_{stage}")
 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("➕ Start Another Innovation"):
-        for k in ["innov_results", "innov_results_title", "innov_idea", "innov_title", "innov_selected_stages", "innov_step"]:
+        for k in [
+            "innov_results", "innov_results_title", "innov_idea", "innov_title",
+            "innov_selected_stages", "innov_step", "innov_kb_context",
+            "innov_is_agri", "innov_sector", "innov_run_idx", "innov_context",
+        ]:
             st.session_state.pop(k, None)
         st.switch_page("pages/new_innovation.py")
 
