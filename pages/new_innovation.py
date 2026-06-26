@@ -76,6 +76,7 @@ def render() -> None:
             )
             api_key = api_key_input
 
+    resume_mode: bool = st.session_state.get("innov_resume_mode", False)
     current_step = st.session_state.get("innov_step", 0)
     is_agri = st.session_state.get("innov_is_agri", False)
 
@@ -94,9 +95,9 @@ def render() -> None:
     elif current_step == 1:
         _step_kb()
     elif current_step == 2:
-        _step_stages(is_agri)
+        _step_stages(is_agri, resume_mode)
     elif current_step == 3:
-        _step_generate(api_key)
+        _step_generate(api_key, resume_mode)
 
 
 def _step_idea(api_key: str) -> None:
@@ -252,8 +253,82 @@ def _step_kb() -> None:
             st.rerun()
 
 
-def _step_stages(is_agri: bool = False) -> None:
+def _step_stages(is_agri: bool = False, resume_mode: bool = False) -> None:
     step_num = "3" if is_agri else "2"
+    existing_results: dict = st.session_state.get("innov_results", {})
+    done_stages = set(existing_results.keys())
+
+    if resume_mode and done_stages:
+        section_bar(f"Step {step_num} · Continue Pipeline — Select Remaining Stages")
+        banner(
+            f"▶️ <strong>Resume mode</strong> — {len(done_stages)} stage(s) already completed. "
+            "Select which remaining stages to run next.",
+            kind="info",
+        )
+
+        # Show completed stages (locked)
+        with st.expander(f"✅ {len(done_stages)} completed stage(s) — will not be re-run", expanded=False):
+            for s in STAGES:
+                if s in done_stages:
+                    st.markdown(
+                        f'<div style="font-size:0.8rem;color:rgba(36,54,75,0.5);padding:0.1rem 0">'  
+                        f'✔️ {STAGE_LABELS.get(s, s)}</div>',
+                        unsafe_allow_html=True,
+                    )
+
+        # Pending stages as checkboxes
+        pending = [s for s in STAGES if s not in done_stages]
+        st.markdown(
+            '<div style="font-size:0.82rem;color:rgba(36,54,75,0.7);margin:0.6rem 0 0.8rem">'
+            'Select stages to run next:</div>',
+            unsafe_allow_html=True,
+        )
+        selected: list[str] = []
+        for stage in pending:
+            label = STAGE_LABELS.get(stage, stage)
+            deliverables = STAGE_DELIVERABLES.get(stage, ["Word (.docx)"])
+            c1, c2 = st.columns([3, 2])
+            with c1:
+                checked = st.checkbox(label, value=True, key=f"rcb_{stage}")
+            with c2:
+                st.markdown(
+                    f'<div style="font-size:0.71rem;color:rgba(36,54,75,0.45);'
+                    f'padding-top:0.42rem">{", ".join(deliverables)}</div>',
+                    unsafe_allow_html=True,
+                )
+            if checked:
+                selected.append(stage)
+
+        if selected:
+            st.markdown(
+                f'<div style="font-size:0.8rem;color:rgba(36,54,75,0.55);margin-top:0.4rem">'
+                f'{len(selected)} stage(s) selected to run</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.warning("Select at least one stage to continue.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        c_back, c_go, _ = st.columns([1, 2, 2])
+        with c_back:
+            if st.button("← Back to Results"):
+                st.session_state["innov_resume_mode"] = False
+                st.switch_page("pages/results.py")
+        with c_go:
+            if st.button(
+                f"Run {len(selected)} Stage(s) →",
+                type="primary",
+                disabled=(not selected),
+            ):
+                st.session_state["innov_selected_stages"] = selected
+                st.session_state["innov_step"] = 3
+                # In resume mode, keep innov_results — only reset run index
+                st.session_state.pop("innov_run_idx", None)
+                st.session_state.pop("innov_context", None)
+                st.rerun()
+        return
+
+    # ── Normal (non-resume) stage selection ───────────────────────────────────
     section_bar(f"Step {step_num} · Select Pipeline Stages")
     banner(
         "⚡ <strong>Quick Run</strong> — 7 key stages (~3 min). "
@@ -273,25 +348,24 @@ def _step_stages(is_agri: bool = False) -> None:
         key="run_mode_radio",
     )
 
-    selected: list[str] = []
+    selected_normal: list[str] = []
 
     if "Full Pipeline" in run_mode:
-        selected = list(FULL_STAGES)
+        selected_normal = list(FULL_STAGES)
         st.markdown(
             '<div style="font-size:0.8rem;color:rgba(36,54,75,0.55);margin-top:0.5rem">'
             'All 19 stages selected</div>',
             unsafe_allow_html=True,
         )
     elif "Quick Run" in run_mode:
-        selected = list(QUICK_STAGES)
+        selected_normal = list(QUICK_STAGES)
         st.markdown(
             '<div style="font-size:0.8rem;color:rgba(36,54,75,0.55);margin-top:0.5rem">7 core stages: '
-            + ", ".join(STAGE_LABELS[s].split(" · ")[1] for s in selected)
+            + ", ".join(STAGE_LABELS[s].split(" · ")[1] for s in selected_normal)
             + "</div>",
             unsafe_allow_html=True,
         )
     else:
-        # Custom mode — stage checklist with deliverables
         st.markdown(
             '<div style="font-size:0.82rem;color:rgba(36,54,75,0.7);'
             'margin:0.6rem 0 0.8rem">Check the stages to include. '
@@ -306,23 +380,21 @@ def _step_stages(is_agri: bool = False) -> None:
             c1, c2 = st.columns([3, 2])
             with c1:
                 checked = st.checkbox(
-                    label,
-                    value=(stage in default_on),
-                    key=f"scb_{stage}",
+                    label, value=(stage in default_on), key=f"scb_{stage}",
                 )
             with c2:
                 st.markdown(
                     f'<div style="font-size:0.71rem;color:rgba(36,54,75,0.45);'
-                    f'padding-top:0.42rem">{" · ".join(deliverables)}</div>',
+                    f'padding-top:0.42rem">{", ".join(deliverables)}</div>',
                     unsafe_allow_html=True,
                 )
             if checked:
                 custom.append(stage)
-        selected = custom
-        if selected:
+        selected_normal = custom
+        if selected_normal:
             st.markdown(
                 f'<div style="font-size:0.8rem;color:rgba(36,54,75,0.55);margin-top:0.4rem">'
-                f'{len(selected)} stage(s) selected</div>',
+                f'{len(selected_normal)} stage(s) selected</div>',
                 unsafe_allow_html=True,
             )
         else:
@@ -335,17 +407,16 @@ def _step_stages(is_agri: bool = False) -> None:
             st.session_state["innov_step"] = 1 if is_agri else 0
             st.rerun()
     with c_go:
-        if st.button("Run Pipeline →", type="primary", disabled=(not selected)):
-            st.session_state["innov_selected_stages"] = selected
+        if st.button("Run Pipeline →", type="primary", disabled=(not selected_normal)):
+            st.session_state["innov_selected_stages"] = selected_normal
             st.session_state["innov_step"] = 3
-            # Reset any previous run state
+            # Fresh run: clear any previous run state
             for k in ["innov_run_idx", "innov_context", "innov_results"]:
                 st.session_state.pop(k, None)
             st.rerun()
 
 
 def _mid_dl_row(stage: str, content: str, title: str) -> None:
-    """Compact download row shown during/after intermediate stage completion."""
     lbl = STAGE_LABELS.get(stage, stage)
     ncols = 1 + (1 if stage in EXCEL_STAGES else 0) + (1 if stage in PPTX_STAGES else 0)
     cols = st.columns([3] + [1] * ncols)
@@ -399,7 +470,7 @@ def _mid_dl_row(stage: str, content: str, title: str) -> None:
             pass
 
 
-def _step_generate(api_key: str) -> None:
+def _step_generate(api_key: str, resume_mode: bool = False) -> None:
     is_agri = st.session_state.get("innov_is_agri", False)
     step_num = "4" if is_agri else "3"
     section_bar(f"Step {step_num} · Running the Pipeline")
@@ -416,18 +487,25 @@ def _step_generate(api_key: str) -> None:
             st.rerun()
         return
 
-    # Initialise per-run state on first entry
+    # Initialise per-run state on first entry.
+    # In resume mode, preserve innov_results — only reset the run index.
     if "innov_run_idx" not in st.session_state:
         st.session_state["innov_run_idx"] = 0
-        st.session_state["innov_results"] = {}
-        st.session_state["innov_context"] = {}
+        if not resume_mode:
+            st.session_state["innov_results"] = {}
+        else:
+            # Seed context from already-completed stages so later stages have prior output
+            existing = st.session_state.get("innov_results", {})
+            st.session_state["innov_context"] = dict(existing)
+        if "innov_results" not in st.session_state:
+            st.session_state["innov_results"] = {}
+        st.session_state["innov_context"] = dict(st.session_state.get("innov_results", {}))
         st.session_state["innov_results_title"] = title
 
     run_idx: int = st.session_state["innov_run_idx"]
     results: dict[str, str] = st.session_state["innov_results"]
     total = len(selected)
 
-    # Progress bar
     st.progress(run_idx / total if total else 1.0)
 
     if run_idx < total:
@@ -451,7 +529,6 @@ def _step_generate(api_key: str) -> None:
                 for s, c in results.items():
                     _mid_dl_row(s, c, title)
 
-        # Run the next stage
         try:
             context: dict[str, str] = st.session_state.get("innov_context", {})
             prompt = _prompt_for_stage(stage, idea, context, kb_context=kb_context)
@@ -468,10 +545,10 @@ def _step_generate(api_key: str) -> None:
                 st.session_state["innov_step"] = 2
                 st.rerun()
     else:
-        # All stages complete
         st.progress(1.0)
-        st.success(f"✓ All {total} stage(s) complete!")
-        for k in ["innov_run_idx", "innov_context"]:
+        all_done = len(st.session_state.get("innov_results", {}))
+        st.success(f"✓ {total} new stage(s) complete! {all_done} total stage(s) in package.")
+        for k in ["innov_run_idx", "innov_context", "innov_resume_mode"]:
             st.session_state.pop(k, None)
         st.session_state["innov_results_title"] = title
         st.switch_page("pages/results.py")
