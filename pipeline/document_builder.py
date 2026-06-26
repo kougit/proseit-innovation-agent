@@ -31,7 +31,7 @@ from pptx.util import Inches as PIn, Pt as PPt
 from pptx.dml.color import RGBColor as PRGBColor
 from pptx.enum.text import PP_ALIGN
 
-# ── Brand colours ───────────────────────────────────────────────────
+# ── Brand colours ─────────────────────────────────────────────────
 _WN = WRGBColor(0x24, 0x36, 0x4B)    # Navy
 _WG = WRGBColor(0xD4, 0xA6, 0x2A)    # Gold
 _WW = WRGBColor(0xFF, 0xFF, 0xFF)    # White
@@ -45,8 +45,8 @@ _PDT = PRGBColor(0x1F, 0x29, 0x33)
 _PGR = PRGBColor(0x88, 0x88, 0x88)
 
 PROSEIT_CONTACT = (
-    "ProSEIT · Professional Society for Engineering, Innovation & Technology"
-    "  |  www.proseit.org  |  info@proseit.org  |  Kampala, Uganda, East Africa"
+    "ProSEIT · Plot 5 Blue Heights Plaza, Nkrumah Road, Kampala, Uganda"
+    "  |  Tel: +256 790 334 653  |  www.proseit.org  |  info@proseit.org"
 )
 _TODAY = _date.today().strftime("%d %B %Y")
 
@@ -125,7 +125,7 @@ def _plain(text: str) -> str:
 
 
 def _extract_tables(text: str) -> list[list[list[str]]]:
-    """Extract markdown tables as list[table] where table = list[row] where row = list[cell]."""
+    """Extract markdown tables as list[table] where table = list[row] and row = list[cell]."""
     tables: list[list[list[str]]] = []
     current: list[list[str]] = []
     for t, content in _parse_md(text):
@@ -174,7 +174,6 @@ def _add_cover(doc: Document, innov_title: str, stage_label: str) -> None:
         r.font.color.rgb = color
         r.font.name = "Calibri"
 
-    # Use the initial empty paragraph as top padding
     p0 = cell.paragraphs[0]
     p0.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p0.add_run(" ").font.size = Pt(6)
@@ -282,7 +281,6 @@ def _render_to_docx(doc: Document, tokens: list[tuple[str, str]]) -> None:
             r.italic = True
             r.font.color.rgb = WRGBColor(0x55, 0x66, 0x77)
         elif t == "table_row":
-            # Collect all consecutive table rows
             rows: list[list[str]] = []
             j = i
             while j < len(tokens) and tokens[j][0] == "table_row":
@@ -412,24 +410,21 @@ def build_excel_doc(
     else:
         table_idx = 0
         i = 0
-        seen_table_starts = set()
+        seen_table_starts: set[int] = set()
         while i < len(tokens) and table_idx < len(tables):
             t, line = tokens[i]
             if t == "table_row" and i not in seen_table_starts:
-                # Find heading before this table
                 heading = f"Table {table_idx + 1}"
                 for back in range(i - 1, max(i - 8, -1), -1):
                     bt, bc = tokens[back]
                     if bt in ("h1", "h2", "h3", "h4"):
                         heading = _plain(bc)[:28]
                         break
-
                 sheet_name = f"{table_idx + 1}. {heading}"[:31]
                 ws = wb.create_sheet(sheet_name)
                 _title_rows(ws)
                 ws["A2"] = f"{stage_label}  —  {heading}"
                 ws["A2"].font = XLFont(size=10, color="D4A62A", name="Calibri")
-
                 tbl_rows = tables[table_idx]
                 ncols = max(len(r) for r in tbl_rows)
                 for ri, row_data in enumerate(tbl_rows):
@@ -438,7 +433,6 @@ def build_excel_doc(
                     style = _XL_HDR if ri == 0 else _xl_row_style(ri)
                     _xl_write_row(ws, xl_row, row_data, style)
                     ws.row_dimensions[xl_row].height = 20 if ri == 0 else 15
-
                 for ci in range(1, ncols + 1):
                     col = get_column_letter(ci)
                     max_w = max(
@@ -447,8 +441,6 @@ def build_excel_doc(
                     )
                     ws.column_dimensions[col].width = min(max(max_w + 2, 12), 48)
                 ws.freeze_panes = "A6"
-
-                # Skip over all rows of this table
                 seen_table_starts.add(i)
                 while i < len(tokens) and tokens[i][0] == "table_row":
                     i += 1
@@ -459,15 +451,16 @@ def build_excel_doc(
     ws_info = wb.create_sheet("ProSEIT")
     ws_info["A1"] = "ProSEIT · Professional Society for Engineering, Innovation & Technology"
     ws_info["A1"].font = XLFont(bold=True, size=13, color="24364B", name="Calibri")
-    for i, row_val in enumerate([
+    for idx, row_val in enumerate([
+        "Plot 5 Blue Heights Plaza, Nkrumah Road, Kampala, Uganda",
+        "Tel: +256 790 334 653",
         "Website: www.proseit.org",
         "Email: info@proseit.org",
-        "Address: Kampala, Uganda, East Africa",
         f"Generated: {_TODAY}",
         f"Innovation: {innov_title}",
         f"Stage: {stage_label}",
     ], start=2):
-        ws_info.cell(row=i, column=1, value=row_val).font = XLFont(size=10, name="Calibri")
+        ws_info.cell(row=idx, column=1, value=row_val).font = XLFont(size=10, name="Calibri")
     ws_info.column_dimensions["A"].width = 70
 
     buf = io.BytesIO()
@@ -509,41 +502,29 @@ def build_pptx_doc(
     prs.slide_height = PIn(7.5)
     blank = prs.slide_layouts[6]
 
-    # ── Cover slide ──────────────────────────────────────────────────
+    # ── Cover slide ───────────────────────────────────────────────
     sl = prs.slides.add_slide(blank)
     sl.background.fill.solid()
     sl.background.fill.fore_color.rgb = _PN
-
-    _pptx_rect(sl, PIn(0), PIn(0), PIn(13.33), PIn(0.12), _PG)  # gold top bar
-    _pptx_rect(sl, PIn(0), PIn(7.38), PIn(13.33), PIn(0.12), _PG)  # gold bottom bar
+    _pptx_rect(sl, PIn(0), PIn(0), PIn(13.33), PIn(0.12), _PG)
+    _pptx_rect(sl, PIn(0), PIn(7.38), PIn(13.33), PIn(0.12), _PG)
 
     def _tb(left, top, width, height):
         txb = sl.shapes.add_textbox(PIn(left), PIn(top), PIn(width), PIn(height))
         txb.text_frame.word_wrap = True
         return txb.text_frame
 
-    tf = _tb(1, 1.3, 11.33, 1.2)
-    _pptx_run(tf, "PROSEIT", 54, _PG, bold=True, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(1, 1.3, 11.33, 1.2), "PROSEIT", 54, _PG, bold=True, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(1, 2.65, 11.33, 0.5),
+              "Professional Society for Engineering, Innovation & Technology",
+              13, _PW, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(1, 3.25, 11.33, 0.3), "─" * 60, 9, _PG, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(1, 3.65, 11.33, 1.0), innov_title, 26, _PW, bold=True, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(1, 4.8, 11.33, 0.55), stage_label, 16, _PG, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(1, 5.5, 11.33, 0.4), _TODAY, 11, _PW, align=PP_ALIGN.CENTER)
+    _pptx_run(_tb(0.5, 6.75, 12.33, 0.45), PROSEIT_CONTACT, 8, _PGR, align=PP_ALIGN.CENTER)
 
-    tf2 = _tb(1, 2.65, 11.33, 0.5)
-    _pptx_run(tf2, "Professional Society for Engineering, Innovation & Technology", 13, _PW, align=PP_ALIGN.CENTER)
-
-    tf3 = _tb(1, 3.25, 11.33, 0.3)
-    _pptx_run(tf3, "─" * 60, 9, _PG, align=PP_ALIGN.CENTER)
-
-    tf4 = _tb(1, 3.65, 11.33, 1.0)
-    _pptx_run(tf4, innov_title, 26, _PW, bold=True, align=PP_ALIGN.CENTER)
-
-    tf5 = _tb(1, 4.8, 11.33, 0.55)
-    _pptx_run(tf5, stage_label, 16, _PG, align=PP_ALIGN.CENTER)
-
-    tf6 = _tb(1, 5.5, 11.33, 0.4)
-    _pptx_run(tf6, _TODAY, 11, _PW, align=PP_ALIGN.CENTER)
-
-    tf7 = _tb(1, 6.85, 11.33, 0.35)
-    _pptx_run(tf7, PROSEIT_CONTACT, 8, _PGR, align=PP_ALIGN.CENTER)
-
-    # ── Content slides ─────────────────────────────────────────────
+    # ── Content slides ────────────────────────────────────────────
     tokens = _parse_md(content)
     cur_heading = ""
     cur_bullets: list[str] = []
@@ -555,7 +536,6 @@ def build_pptx_doc(
         s = prs.slides.add_slide(blank)
         s.background.fill.solid()
         s.background.fill.fore_color.rgb = _PW
-
         _pptx_rect(s, PIn(0), PIn(0), PIn(13.33), PIn(1.2), _PN)
         _pptx_rect(s, PIn(0), PIn(1.2), PIn(13.33), PIn(0.04), _PG)
         _pptx_rect(s, PIn(0), PIn(7.15), PIn(13.33), PIn(0.04), _PG)
@@ -568,7 +548,7 @@ def build_pptx_doc(
         if not all_items:
             return
 
-        txc = s.shapes.add_textbox(PIn(0.5), PIn(1.4), PIn(12.3), PIn(5.6))
+        txc = s.shapes.add_textbox(PIn(0.5), PIn(1.4), PIn(12.3), PIn(5.55))
         tfc = txc.text_frame
         tfc.word_wrap = True
         fsize = 12 if len(all_items) <= 5 else 10 if len(all_items) <= 9 else 9
