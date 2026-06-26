@@ -5,6 +5,7 @@ Converts Claude-generated markdown stage outputs into branded:
   • Word documents (.docx)     — all stages
   • Excel workbooks (.xlsx)    — data/table-heavy stages
   • PowerPoint slides (.pptx)  — key presentation stages
+  • UIX prototype ZIP          — Stage 06 UIX Prototype
   • ZIP archive                — bundling all formats
 """
 from __future__ import annotations
@@ -31,7 +32,7 @@ from pptx.util import Inches as PIn, Pt as PPt
 from pptx.dml.color import RGBColor as PRGBColor
 from pptx.enum.text import PP_ALIGN
 
-# ── Brand colours ─────────────────────────────────────────────────
+# ── Brand colours ─────────────────────────────────────────────────────────────────
 _WN = WRGBColor(0x24, 0x36, 0x4B)    # Navy
 _WG = WRGBColor(0xD4, 0xA6, 0x2A)    # Gold
 _WW = WRGBColor(0xFF, 0xFF, 0xFF)    # White
@@ -50,9 +51,9 @@ PROSEIT_CONTACT = (
 )
 _TODAY = _date.today().strftime("%d %B %Y")
 
-# ── Stage routing ─────────────────────────────────────────────────
+# ── Stage routing ─────────────────────────────────────────────────────────────────
 EXCEL_STAGES = frozenset({
-    "03_editions", "05_user_stories", "07_data_model",
+    "03_editions", "05_user_stories", "06_ux_wireframes", "07_data_model",
     "08_api_design", "09_integrations", "11_testing",
     "14_budget", "17_roadmap", "18_package",
 })
@@ -60,6 +61,8 @@ PPTX_STAGES = frozenset({
     "00_intake", "02_concept", "15_business_plan",
     "17_roadmap", "18_package",
 })
+UIX_STAGES = frozenset({"06_ux_wireframes"})
+
 STAGE_DELIVERABLES: dict[str, list[str]] = {
     "00_intake":        ["Word (.docx)", "PowerPoint (.pptx)"],
     "01_policy":        ["Word (.docx)"],
@@ -67,7 +70,7 @@ STAGE_DELIVERABLES: dict[str, list[str]] = {
     "03_editions":      ["Word (.docx)", "Excel (.xlsx)"],
     "04_architecture":  ["Word (.docx)"],
     "05_user_stories":  ["Word (.docx)", "Excel (.xlsx)"],
-    "06_ux_wireframes": ["Word (.docx)"],
+    "06_ux_wireframes": ["UIX Prototype Pack (.zip)", "Word Reference (.docx)", "Excel Mapping (.xlsx)"],
     "07_data_model":    ["Word (.docx)", "Excel (.xlsx)"],
     "08_api_design":    ["Word (.docx)", "Excel (.xlsx)"],
     "09_integrations":  ["Word (.docx)", "Excel (.xlsx)"],
@@ -82,13 +85,96 @@ STAGE_DELIVERABLES: dict[str, list[str]] = {
     "18_package":       ["Word (.docx)", "PowerPoint (.pptx)", "Excel (.xlsx)"],
 }
 
+# ═════════════════════════════════════════════════════════════════════════
+# UIX Prototype file parser
+# ═════════════════════════════════════════════════════════════════════════
 
-# ═══════════════════════════════════════════════════════════════════════════
+_UIX_FILE_RE = re.compile(
+    r"===UIX_FILE:\s*([^\n]+?)\s*===\n(.*?)===UIX_END===",
+    re.DOTALL,
+)
+
+
+def parse_uix_files(content: str) -> dict[str, str]:
+    """Extract filename->content pairs from UIX delimiter blocks."""
+    return {m.group(1).strip(): m.group(2) for m in _UIX_FILE_RE.finditer(content)}
+
+
+def build_uix_zip(stage: str, stage_label: str, content: str, innov_title: str) -> bytes:
+    """Build a browsable UIX prototype ZIP from Claude's delimited output."""
+    files = parse_uix_files(content)
+    buf = io.BytesIO()
+    slug = innov_title[:40].replace(" ", "_")
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        if files:
+            for filename, file_content in files.items():
+                zf.writestr(f"uix_prototype/{filename}", file_content)
+        else:
+            # Fallback: package raw content as readme if no delimiters found
+            zf.writestr("uix_prototype/readme.md", content)
+
+        # Always include a launch index that opens i.html
+        launch_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=i.html">
+<title>{innov_title} — UIX Prototype</title>
+<style>
+  body {{ font-family: Calibri, sans-serif; background: #24364B; color: #fff;
+         display: flex; align-items: center; justify-content: center;
+         min-height: 100vh; margin: 0; }}
+  .card {{ background: rgba(255,255,255,0.08); border: 2px solid #D4A62A;
+           border-radius: 8px; padding: 40px 60px; text-align: center; }}
+  h1 {{ color: #D4A62A; margin: 0 0 8px; }}
+  p {{ opacity: 0.7; margin: 0 0 24px; }}
+  a {{ display: inline-block; background: #D4A62A; color: #24364B;
+       font-weight: 700; padding: 12px 28px; border-radius: 4px;
+       text-decoration: none; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>ProSEIT UIX Prototype</h1>
+  <p>{innov_title}</p>
+  <p style="font-size:0.85rem">{stage_label}</p>
+  <a href="i.html">Open Prototype &rarr;</a>
+</div>
+</body>
+</html>"""
+        zf.writestr("uix_prototype/launch.html", launch_html)
+
+        # Manifest
+        file_list = "\n".join(f"- {fn}" for fn in sorted(files.keys())) if files else "(no structured files found)"
+        manifest = f"""# {innov_title} — UIX Prototype Pack
+
+Generated: {_TODAY}
+Stage: {stage_label}
+{PROSEIT_CONTACT}
+
+## Files
+{file_list}
+
+## How to use
+1. Extract this ZIP to a folder
+2. Open `launch.html` in a browser (or open `i.html` directly)
+3. Navigate using the sidebar
+
+## Notes
+- All pages link to shared `a/s.css` and `a/j.js`
+- No build step required — pure HTML/CSS/JS
+- For Angular integration see `readme.md` inside the prototype folder
+"""
+        zf.writestr("MANIFEST.md", manifest)
+
+    return buf.getvalue()
+
+
+# ═════════════════════════════════════════════════════════════════════════
 # Shared markdown parser
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 
 def _parse_md(text: str) -> list[tuple[str, str]]:
-    """Tokenise markdown into (type, content) pairs."""
     items: list[tuple[str, str]] = []
     for raw in text.split("\n"):
         line = raw.rstrip()
@@ -116,7 +202,6 @@ def _parse_md(text: str) -> list[tuple[str, str]]:
 
 
 def _plain(text: str) -> str:
-    """Strip markdown inline formatting to plain text."""
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
     text = re.sub(r"\*(.*?)\*", r"\1", text)
     text = re.sub(r"`(.*?)`", r"\1", text)
@@ -125,14 +210,13 @@ def _plain(text: str) -> str:
 
 
 def _extract_tables(text: str) -> list[list[list[str]]]:
-    """Extract markdown tables as list[table] where table = list[row] and row = list[cell]."""
     tables: list[list[list[str]]] = []
     current: list[list[str]] = []
     for t, content in _parse_md(text):
         if t == "table_row":
             cells = [c.strip() for c in content.strip("|").split("|")]
             if all(re.match(r"^[-: ]+$", c) for c in cells if c):
-                continue  # separator row
+                continue
             current.append(cells)
         else:
             if current:
@@ -143,9 +227,9 @@ def _extract_tables(text: str) -> list[list[list[str]]]:
     return tables
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 # Word document builder
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 
 def _cell_bg(cell, hex6: str) -> None:
     tc = cell._tc
@@ -339,9 +423,9 @@ def build_word_doc(
     return buf.getvalue()
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 # Excel workbook builder
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 
 _XL_HDR = {
     "font": XLFont(bold=True, color="FFFFFF", name="Calibri", size=10),
@@ -374,6 +458,34 @@ def _xl_write_row(ws, row_num: int, cells: list[str], style: dict) -> None:
             setattr(c, attr, v)
 
 
+def _build_uix_screen_map(content: str) -> list[list[str]]:
+    """Extract file inventory from UIX content for the Excel mapping sheet."""
+    files = parse_uix_files(content)
+    screen_map = [
+        ["File", "Screen / Purpose", "Angular Component", "Route", "DocType(s)"],
+    ]
+    screen_names = {
+        "i.html": ("Dashboard / Home", "DashboardComponent", "/app/dashboard"),
+        "p1.html": ("Feature Screen 1", "Feature1Component", "/app/feature/1"),
+        "p2.html": ("Feature Screen 2", "Feature2Component", "/app/feature/2"),
+        "p3.html": ("Feature Screen 3", "Feature3Component", "/app/feature/3"),
+        "p4.html": ("Feature Screen 4", "Feature4Component", "/app/feature/4"),
+        "p5.html": ("Feature Screen 5", "Feature5Component", "/app/feature/5"),
+        "p6.html": ("List Screen", "ListComponent", "/app/list"),
+        "p7.html": ("Detail / Form", "DetailComponent", "/app/detail/:id"),
+        "p8.html": ("Reports / Analytics", "ReportsComponent", "/app/reports"),
+        "g.html": ("Global Settings", "SettingsComponent", "/app/settings"),
+        "s.html": ("Superadmin Panel", "AdminComponent", "/app/admin"),
+        "a/s.css": ("Master Stylesheet", "N/A", "N/A"),
+        "a/j.js": ("Master JavaScript", "N/A", "N/A"),
+        "readme.md": ("Developer Handover", "N/A", "N/A"),
+    }
+    for fname in sorted(files.keys()) if files else sorted(screen_names.keys()):
+        info = screen_names.get(fname, (fname, "CustomComponent", "/app/custom"))
+        screen_map.append([fname, info[0], info[1], info[2], "[see Developer Handover Panel]"])
+    return screen_map
+
+
 def build_excel_doc(
     stage: str, stage_label: str, content: str, innov_title: str
 ) -> bytes:
@@ -390,6 +502,70 @@ def build_excel_doc(
         ws["A3"] = PROSEIT_CONTACT
         ws["A3"].font = XLFont(size=8, color="888888", name="Calibri")
         ws.row_dimensions[1].height = 18
+
+    # For UIX stage, add a screen mapping sheet first
+    if stage in UIX_STAGES:
+        ws_map = wb.create_sheet("Screen Map")
+        _title_rows(ws_map)
+        rows = _build_uix_screen_map(content)
+        ncols = max(len(r) for r in rows)
+        for ri, row_data in enumerate(rows):
+            row_data = row_data + [""] * (ncols - len(row_data))
+            xl_row = ri + 5
+            style = _XL_HDR if ri == 0 else _xl_row_style(ri)
+            _xl_write_row(ws_map, xl_row, row_data, style)
+            ws_map.row_dimensions[xl_row].height = 20 if ri == 0 else 15
+        for ci in range(1, ncols + 1):
+            col = get_column_letter(ci)
+            ws_map.column_dimensions[col].width = 24
+        ws_map.freeze_panes = "A6"
+
+        # Components sheet
+        ws_comp = wb.create_sheet("Angular Components")
+        _title_rows(ws_comp)
+        comp_rows = [
+            ["Component", "Selector", "Module", "Inputs", "Outputs", "Screen(s)"],
+            ["AppComponent", "app-root", "AppModule", "", "", "All"],
+            ["SidenavComponent", "app-sidenav", "SharedModule", "collapsed", "navToggle", "All"],
+            ["NavbarComponent", "app-navbar", "SharedModule", "title, user", "menuClick", "All"],
+            ["DashboardComponent", "app-dashboard", "DashboardModule", "", "", "i.html"],
+            ["KpiCardComponent", "app-kpi-card", "SharedModule", "label, value, trend", "", "i.html"],
+            ["DataTableComponent", "app-data-table", "SharedModule", "rows, columns", "rowClick", "Multiple"],
+            ["FormComponent", "app-form", "SharedModule", "schema, data", "formSubmit", "p7.html"],
+            ["ChartComponent", "app-chart", "SharedModule", "type, data, labels", "", "p8.html, i.html"],
+            ["SettingsComponent", "app-settings", "SettingsModule", "", "", "g.html"],
+            ["AdminComponent", "app-admin", "AdminModule", "", "", "s.html"],
+        ]
+        for ri, row_data in enumerate(comp_rows):
+            xl_row = ri + 5
+            style = _XL_HDR if ri == 0 else _xl_row_style(ri)
+            _xl_write_row(ws_comp, xl_row, row_data, style)
+        for ci in range(1, 7):
+            ws_comp.column_dimensions[get_column_letter(ci)].width = 22
+        ws_comp.freeze_panes = "A6"
+
+        # Edition matrix sheet
+        ws_ed = wb.create_sheet("Edition Matrix")
+        _title_rows(ws_ed)
+        ed_rows = [
+            ["Screen / Feature", "CE", "PE", "E-C", "E-O", "Notes"],
+            ["Dashboard (i.html)", "Yes", "Yes", "Yes", "Yes", "Core screen"],
+            ["Feature Screens (p1-p5)", "Limited", "Full", "Full", "Full", "CE has read-only"],
+            ["List Screen (p6)", "Yes", "Yes", "Yes", "Yes", "Core screen"],
+            ["Detail/Form (p7)", "Yes", "Yes", "Yes", "Yes", "CE limited fields"],
+            ["Reports (p8)", "Basic", "Full", "Full", "Full", "CE: 3 report types"],
+            ["Settings (g.html)", "Basic", "Full", "Full", "Full", "CE: system settings only"],
+            ["Superadmin (s.html)", "No", "No", "Yes", "Yes", "Enterprise only"],
+            ["Multi-tenancy", "No", "No", "Yes", "No", "E-C cloud only"],
+            ["API Access", "No", "Yes", "Yes", "Yes", "PE and above"],
+        ]
+        for ri, row_data in enumerate(ed_rows):
+            xl_row = ri + 5
+            style = _XL_HDR if ri == 0 else _xl_row_style(ri)
+            _xl_write_row(ws_ed, xl_row, row_data, style)
+        for ci in range(1, 7):
+            ws_ed.column_dimensions[get_column_letter(ci)].width = 20
+        ws_ed.freeze_panes = "A6"
 
     if not tables:
         ws = wb.create_sheet("Content")
@@ -468,9 +644,9 @@ def build_excel_doc(
     return buf.getvalue()
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 # PowerPoint builder
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 
 def _pptx_run(tf, text: str, size: int, color: PRGBColor,
              bold: bool = False, italic: bool = False,
@@ -502,7 +678,6 @@ def build_pptx_doc(
     prs.slide_height = PIn(7.5)
     blank = prs.slide_layouts[6]
 
-    # ── Cover slide ───────────────────────────────────────────────
     sl = prs.slides.add_slide(blank)
     sl.background.fill.solid()
     sl.background.fill.fore_color.rgb = _PN
@@ -524,7 +699,6 @@ def build_pptx_doc(
     _pptx_run(_tb(1, 5.5, 11.33, 0.4), _TODAY, 11, _PW, align=PP_ALIGN.CENTER)
     _pptx_run(_tb(0.5, 6.75, 12.33, 0.45), PROSEIT_CONTACT, 8, _PGR, align=PP_ALIGN.CENTER)
 
-    # ── Content slides ────────────────────────────────────────────
     tokens = _parse_md(content)
     cur_heading = ""
     cur_bullets: list[str] = []
@@ -583,9 +757,9 @@ def build_pptx_doc(
     return buf.getvalue()
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 # ZIP builders
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════
 
 def build_stage_zip(
     stage: str, stage_label: str, content: str, innov_title: str
@@ -598,6 +772,11 @@ def build_stage_zip(
             zf.writestr(f"{slug}.xlsx", build_excel_doc(stage, stage_label, content, innov_title))
         if stage in PPTX_STAGES:
             zf.writestr(f"{slug}.pptx", build_pptx_doc(stage, stage_label, content, innov_title))
+        if stage in UIX_STAGES:
+            uix_buf = build_uix_zip(stage, stage_label, content, innov_title)
+            with zipfile.ZipFile(io.BytesIO(uix_buf), "r") as inner:
+                for name in inner.namelist():
+                    zf.writestr(name, inner.read(name))
     return buf.getvalue()
 
 
@@ -620,6 +799,11 @@ def build_full_zip(
             if stage in PPTX_STAGES:
                 zf.writestr(folder + f"{slug}.pptx",
                             build_pptx_doc(stage, label, content, innov_title))
+            if stage in UIX_STAGES:
+                uix_buf = build_uix_zip(stage, label, content, innov_title)
+                with zipfile.ZipFile(io.BytesIO(uix_buf), "r") as inner:
+                    for name in inner.namelist():
+                        zf.writestr(folder + name, inner.read(name))
         index = [
             f"# {innov_title} — ProSEIT Innovation Package",
             f"Generated: {_TODAY}",

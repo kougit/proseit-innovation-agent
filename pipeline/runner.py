@@ -37,7 +37,7 @@ STAGE_LABELS = {
     "03_editions":     "Stage 03 · Edition Planning",
     "04_architecture": "Stage 04 · Technical Architecture",
     "05_user_stories": "Stage 05 · User Stories",
-    "06_ux_wireframes":"Stage 06 · UX & Wireframes",
+    "06_ux_wireframes":"Stage 06 · UIX Prototype",
     "07_data_model":   "Stage 07 · Data Model",
     "08_api_design":   "Stage 08 · API Design",
     "09_integrations": "Stage 09 · Integrations",
@@ -65,320 +65,17 @@ AGRI_SECTORS = {
 }
 
 # ── Agriculture knowledge base registry ──────────────────────────────────────────────
-# Each entry defines a validated source that the agent may cite.
-# tier 1 = multi-crop national/regional catalogues (highest authority)
-# tier 2 = crop-specific or topic-specific validated books/manuals
-
 AGRI_KB_REGISTRY: list[dict] = [
-    # ── Tier 1: Official multi-crop catalogues ──────────────────────────────────────
-    {
-        "tier": 1,
-        "id": "adcrc",
-        "name": "Africa Digital Crop Variety Catalogue (ADCRC)",
-        "publisher": "AGRA (Alliance for a Green Revolution in Africa)",
-        "year": "2023",
-        "crops": ["Maize", "Beans", "Cassava"],
-        "countries": ["Uganda", "Tanzania", "Kenya", "Rwanda", "Malawi", "Ethiopia"],
-        "content": (
-            "Structured variety data: maturity days, yield potential, drought tolerance, "
-            "CMD/CBSD resistance, recommended agro-ecological zones. "
-            "Already digitised — suitable for direct RAG ingestion."
-        ),
-        "citation": (
-            "AGRA (2023). Africa Digital Crop Variety Catalogue (ADCRC). "
-            "Alliance for a Green Revolution in Africa, Nairobi."
-        ),
-    },
-    {
-        "tier": 1,
-        "id": "naro_catalogue",
-        "name": "NARO National Crop Variety Release Catalogue",
-        "publisher": "National Agricultural Research Organisation (NARO), Uganda",
-        "year": "2023",
-        "crops": ["Maize", "Beans", "Bananas", "Cassava", "Pineapple", "Sorghum",
-                  "Groundnuts", "Sweet Potato"],
-        "countries": ["Uganda"],
-        "content": (
-            "Release year, breeder, yield, recommended agro-ecological zones, "
-            "biotic/abiotic stress resistance. Legal authority for Uganda variety registration."
-        ),
-        "citation": (
-            "NARO (2023). National Crop Variety Release Catalogue. "
-            "National Agricultural Research Organisation, Entebbe, Uganda."
-        ),
-    },
-    {
-        "tier": 1,
-        "id": "kephis_nvl",
-        "name": "KEPHIS National Variety List",
-        "publisher": "Kenya Plant Health Inspectorate Service (KEPHIS)",
-        "year": "2024",
-        "crops": ["Maize", "Beans", "Cassava", "Pineapple", "Sorghum"],
-        "countries": ["Kenya"],
-        "content": (
-            "Officially released varieties with performance data for Kenyan "
-            "agro-ecological zones. Cross-border validation reference."
-        ),
-        "citation": (
-            "KEPHIS (2024). National Variety List. "
-            "Kenya Plant Health Inspectorate Service, Nairobi."
-        ),
-    },
-    {
-        "tier": 1,
-        "id": "tari_catalogue",
-        "name": "TARI Crop Variety Catalogue",
-        "publisher": "Tanzania Agricultural Research Institute (TARI)",
-        "year": "2023",
-        "crops": ["Maize", "Beans", "Cassava", "Cashew", "Sorghum"],
-        "countries": ["Tanzania"],
-        "content": (
-            "Released varieties for Tanzania with yield, maturity, "
-            "and stress tolerance data across Tanzanian agro-ecological zones."
-        ),
-        "citation": (
-            "TARI (2023). Crop Variety Catalogue. "
-            "Tanzania Agricultural Research Institute, Dodoma."
-        ),
-    },
-    {
-        "tier": 1,
-        "id": "rab_catalogue",
-        "name": "RAB Crop Variety Catalogue",
-        "publisher": "Rwanda Agriculture and Animal Resources Development Board (RAB)",
-        "year": "2023",
-        "crops": ["Maize", "Beans", "Cassava", "Banana"],
-        "countries": ["Rwanda"],
-        "content": (
-            "Released varieties for Rwanda with performance data "
-            "across agro-ecological zones. Includes highland adaptations."
-        ),
-        "citation": (
-            "RAB (2023). Crop Variety Catalogue. "
-            "Rwanda Agriculture and Animal Resources Development Board, Kigali."
-        ),
-    },
-
-    # ── Tier 2: Crop-specific validated books/manuals ─────────────────────────────────
-    {
-        "tier": 2,
-        "id": "cimmyt_maize",
-        "name": "CIMMYT/NARO Maize Variety Catalogue for Eastern Africa",
-        "publisher": "CIMMYT & NARO",
-        "year": "2022",
-        "crops": ["Maize"],
-        "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia", "Rwanda"],
-        "content": (
-            "Drought-tolerant, Striga-resistant, N-use efficient hybrids. "
-            "DH, SC, OPV lines by altitude and agro-zone. "
-            "Includes seed company licensing information."
-        ),
-        "citation": (
-            "CIMMYT/NARO (2022). Maize Variety Catalogue for Eastern Africa. "
-            "CIMMYT, Nairobi."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "ciat_beans",
-        "name": "CIAT/PABRA Bean Variety Catalogue for Eastern and Central Africa",
-        "publisher": "CIAT & Pan-Africa Bean Research Alliance (PABRA)",
-        "year": "2023",
-        "crops": ["Beans", "Common Bean"],
-        "countries": ["Uganda", "Kenya", "Tanzania", "Rwanda", "DRC", "Malawi", "Zambia"],
-        "content": (
-            "100+ varieties with BBMV, BCMV, anthracnose, low-fertility tolerance, "
-            "cooking time, protein content, and market class (climbing, bush, runner). "
-            "Agro-zone performance tables."
-        ),
-        "citation": (
-            "CIAT/PABRA (2023). Bean Variety Catalogue for Eastern and Central Africa. "
-            "CIAT, Cali, Colombia."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "bioversity_banana",
-        "name": "Banana Cultivars in Eastern Africa",
-        "publisher": "Bioversity International / IITA",
-        "year": "2021",
-        "crops": ["Banana", "Plantain", "Matooke"],
-        "countries": ["Uganda", "Tanzania", "Kenya", "Rwanda", "DRC"],
-        "content": (
-            "Matooke, cooking, dessert, and beer banana types. "
-            "Nematode, weevil, BXW (Banana Xanthomonas Wilt) resistance ratings. "
-            "Tissue culture variety performance by region."
-        ),
-        "citation": (
-            "Bioversity International/IITA (2021). Banana Cultivars in Eastern Africa. "
-            "Bioversity International, Rome."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "iita_cassava",
-        "name": "Cassava Varieties of Africa",
-        "publisher": "IITA (International Institute of Tropical Agriculture)",
-        "year": "2022",
-        "crops": ["Cassava"],
-        "countries": ["Uganda", "Tanzania", "Kenya", "Rwanda", "DRC", "Zambia", "Malawi"],
-        "content": (
-            "CMD1, CMD2, CBSD resistant varieties by zone. "
-            "Dry matter content (DMC), yield, cyanide levels, cooking quality, "
-            "starch content for processing applications."
-        ),
-        "citation": (
-            "IITA (2022). Cassava Varieties of Africa. "
-            "International Institute of Tropical Agriculture, Ibadan."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "naro_pineapple",
-        "name": "NARO Horticulture Crops Production Manual — Pineapple",
-        "publisher": "NARO, Uganda",
-        "year": "2020",
-        "crops": ["Pineapple"],
-        "countries": ["Uganda"],
-        "content": (
-            "Smooth Cayenne, MD2, Jubilee varieties. "
-            "Mealybug wilt resistance, nematode tolerance, "
-            "post-harvest handling, juice/fresh market specifications."
-        ),
-        "citation": (
-            "NARO (2020). Horticulture Crops Production Manual: Pineapple. "
-            "NARO, Entebbe, Uganda."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "icraf_shea",
-        "name": "Shea Tree (Vitellaria paradoxa) — A Monograph",
-        "publisher": "ICRAF (World Agroforestry Centre)",
-        "year": "2004",
-        "crops": ["Shea", "Shea Butter"],
-        "countries": ["Uganda", "Tanzania", "Sudan", "South Sudan", "DRC"],
-        "content": (
-            "Ecotypes by region, oil content (%), fruit yield, propagation methods. "
-            "No formal varieties — ecotype-based classification. "
-            "Value chain data: kernel to butter processing ratios."
-        ),
-        "citation": (
-            "ICRAF (2004). Shea Tree (Vitellaria paradoxa): A Monograph. "
-            "World Agroforestry Centre, Nairobi."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "icraf_beekeeping",
-        "name": "Beekeeping in Eastern Africa: A Practical Manual",
-        "publisher": "ICRAF / NARO",
-        "year": "2018",
-        "crops": ["Honey", "Apiculture", "Beeswax", "Propolis"],
-        "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia"],
-        "content": (
-            "Apis mellifera scutellata ecotypes, hive types "
-            "(Langstroth, Kenya top-bar, log hive), "
-            "floral calendars by region, varroa and disease management, "
-            "honey quality standards, market grades."
-        ),
-        "citation": (
-            "ICRAF/NARO (2018). Beekeeping in Eastern Africa: A Practical Manual. "
-            "World Agroforestry Centre, Nairobi."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "inbar_bamboo",
-        "name": "Bamboo Species for Africa",
-        "publisher": "INBAR (International Bamboo and Rattan Organisation)",
-        "year": "2020",
-        "crops": ["Bamboo"],
-        "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia", "Rwanda"],
-        "content": (
-            "Oxytenanthera abyssinica, Bambusa vulgaris, Dendrocalamus species. "
-            "Use-case table: construction, food shoots, carbon sequestration, "
-            "charcoal. Site suitability and planting density data."
-        ),
-        "citation": (
-            "INBAR (2020). Bamboo Species for Africa. "
-            "International Bamboo and Rattan Organisation, Beijing."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "tari_cashew",
-        "name": "Cashew Variety Catalogue — Tanzania",
-        "publisher": "TARI / Naliendele Agricultural Research Institute",
-        "year": "2021",
-        "crops": ["Cashew"],
-        "countries": ["Tanzania", "Kenya", "Uganda"],
-        "content": (
-            "AZA 1, AZA 2, H-series hybrids. "
-            "Nut yield (kg/tree), kernel outturn (%), cashew stem borer (CSB) tolerance, "
-            "early bearing age, canopy architecture."
-        ),
-        "citation": (
-            "TARI/Naliendele (2021). Cashew Variety Catalogue. "
-            "Tanzania Agricultural Research Institute, Naliendele."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "prota_wild_mango",
-        "name": "Irvingia gabonensis (Wild/Bush Mango) — PROTA Monograph",
-        "publisher": "PROTA / ICRAF",
-        "year": "2008",
-        "crops": ["Wild Mango", "Bush Mango", "Ogbono"],
-        "countries": ["Uganda", "DRC", "Tanzania"],
-        "content": (
-            "Kernel fat/oil content, fruit traits, wild vs selected germplasm. "
-            "No formal varieties — wild collection and plus-tree selection only. "
-            "Dika nut processing and export market data."
-        ),
-        "citation": (
-            "PROTA/ICRAF (2008). Irvingia gabonensis. "
-            "In: Plant Resources of Tropical Africa 2. "
-            "PROTA Foundation, Wageningen."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "fao_livestock",
-        "name": "FAO Livestock Production Systems in Uganda and East Africa",
-        "publisher": "FAO / ILRI",
-        "year": "2020",
-        "crops": ["Livestock", "Cattle", "Goats", "Poultry", "Pigs", "Sheep"],
-        "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia", "Rwanda"],
-        "content": (
-            "Breed performance by production system (pastoral, agropastoral, mixed), "
-            "feed systems, disease management (CBPP, FMD, Newcastle, ASF), "
-            "slaughter weights, offtake rates, value chain analysis."
-        ),
-        "citation": (
-            "FAO/ILRI (2020). Livestock Production Systems in East Africa. "
-            "Food and Agriculture Organisation, Rome."
-        ),
-    },
-    {
-        "tier": 2,
-        "id": "ilri_breeds",
-        "name": "ILRI Breed Catalogue for East and Central Africa",
-        "publisher": "ILRI (International Livestock Research Institute)",
-        "year": "2022",
-        "crops": ["Cattle", "Goats", "Sheep", "Poultry", "Pigs"],
-        "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia", "Rwanda",
-                      "Zambia", "Malawi"],
-        "content": (
-            "Indigenous and improved breeds: Ankole, Boran, Zebu, KALRO dairy breeds, "
-            "Kuroiler poultry, improved Large White pigs. "
-            "Productivity benchmarks, disease tolerance, market traits, feed conversion ratios."
-        ),
-        "citation": (
-            "ILRI (2022). Livestock Breed Catalogue for East and Central Africa. "
-            "ILRI, Nairobi."
-        ),
-    },
+    {"tier": 1, "id": "adcrc", "name": "Africa Digital Crop Variety Catalogue (ADCRC)", "publisher": "AGRA", "year": "2023", "crops": ["Maize", "Beans", "Cassava"], "countries": ["Uganda", "Tanzania", "Kenya", "Rwanda", "Malawi", "Ethiopia"], "content": "Structured variety data: maturity days, yield potential, drought tolerance, CMD/CBSD resistance, recommended agro-ecological zones.", "citation": "AGRA (2023). Africa Digital Crop Variety Catalogue (ADCRC). Alliance for a Green Revolution in Africa, Nairobi."},
+    {"tier": 1, "id": "naro_catalogue", "name": "NARO National Crop Variety Release Catalogue", "publisher": "National Agricultural Research Organisation (NARO), Uganda", "year": "2023", "crops": ["Maize", "Beans", "Bananas", "Cassava", "Pineapple", "Sorghum", "Groundnuts", "Sweet Potato"], "countries": ["Uganda"], "content": "Release year, breeder, yield, recommended agro-ecological zones, biotic/abiotic stress resistance. Legal authority for Uganda variety registration.", "citation": "NARO (2023). National Crop Variety Release Catalogue. National Agricultural Research Organisation, Entebbe, Uganda."},
+    {"tier": 1, "id": "kephis_nvl", "name": "KEPHIS National Variety List", "publisher": "Kenya Plant Health Inspectorate Service (KEPHIS)", "year": "2024", "crops": ["Maize", "Beans", "Cassava", "Pineapple", "Sorghum"], "countries": ["Kenya"], "content": "Officially released varieties with performance data for Kenyan agro-ecological zones.", "citation": "KEPHIS (2024). National Variety List. Kenya Plant Health Inspectorate Service, Nairobi."},
+    {"tier": 1, "id": "tari_catalogue", "name": "TARI Crop Variety Catalogue", "publisher": "Tanzania Agricultural Research Institute (TARI)", "year": "2023", "crops": ["Maize", "Beans", "Cassava", "Cashew", "Sorghum"], "countries": ["Tanzania"], "content": "Released varieties for Tanzania with yield, maturity, and stress tolerance data.", "citation": "TARI (2023). Crop Variety Catalogue. Tanzania Agricultural Research Institute, Dodoma."},
+    {"tier": 1, "id": "rab_catalogue", "name": "RAB Crop Variety Catalogue", "publisher": "Rwanda Agriculture and Animal Resources Development Board (RAB)", "year": "2023", "crops": ["Maize", "Beans", "Cassava", "Banana"], "countries": ["Rwanda"], "content": "Released varieties for Rwanda with performance data across agro-ecological zones.", "citation": "RAB (2023). Crop Variety Catalogue. Rwanda Agriculture and Animal Resources Development Board, Kigali."},
+    {"tier": 2, "id": "cimmyt_maize", "name": "CIMMYT/NARO Maize Variety Catalogue for Eastern Africa", "publisher": "CIMMYT & NARO", "year": "2022", "crops": ["Maize"], "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia", "Rwanda"], "content": "Drought-tolerant, Striga-resistant, N-use efficient hybrids. DH, SC, OPV lines by altitude and agro-zone.", "citation": "CIMMYT/NARO (2022). Maize Variety Catalogue for Eastern Africa. CIMMYT, Nairobi."},
+    {"tier": 2, "id": "ciat_beans", "name": "CIAT/PABRA Bean Variety Catalogue for Eastern and Central Africa", "publisher": "CIAT & Pan-Africa Bean Research Alliance (PABRA)", "year": "2023", "crops": ["Beans", "Common Bean"], "countries": ["Uganda", "Kenya", "Tanzania", "Rwanda", "DRC", "Malawi", "Zambia"], "content": "100+ varieties with BBMV, BCMV, anthracnose, low-fertility tolerance, cooking time, protein content.", "citation": "CIAT/PABRA (2023). Bean Variety Catalogue for Eastern and Central Africa. CIAT, Cali, Colombia."},
+    {"tier": 2, "id": "bioversity_banana", "name": "Banana Cultivars in Eastern Africa", "publisher": "Bioversity International / IITA", "year": "2021", "crops": ["Banana", "Plantain", "Matooke"], "countries": ["Uganda", "Tanzania", "Kenya", "Rwanda", "DRC"], "content": "Matooke, cooking, dessert, and beer banana types. Nematode, weevil, BXW resistance ratings.", "citation": "Bioversity International/IITA (2021). Banana Cultivars in Eastern Africa. Bioversity International, Rome."},
+    {"tier": 2, "id": "iita_cassava", "name": "Cassava Varieties of Africa", "publisher": "IITA", "year": "2022", "crops": ["Cassava"], "countries": ["Uganda", "Tanzania", "Kenya", "Rwanda", "DRC", "Zambia", "Malawi"], "content": "CMD1, CMD2, CBSD resistant varieties by zone. Dry matter content, yield, cyanide levels.", "citation": "IITA (2022). Cassava Varieties of Africa. International Institute of Tropical Agriculture, Ibadan."},
+    {"tier": 2, "id": "fao_livestock", "name": "FAO Livestock Production Systems in Uganda and East Africa", "publisher": "FAO / ILRI", "year": "2020", "crops": ["Livestock", "Cattle", "Goats", "Poultry", "Pigs", "Sheep"], "countries": ["Uganda", "Kenya", "Tanzania", "Ethiopia", "Rwanda"], "content": "Breed performance by production system, feed systems, disease management, slaughter weights, offtake rates.", "citation": "FAO/ILRI (2020). Livestock Production Systems in East Africa. Food and Agriculture Organisation, Rome."},
 ]
 
 
@@ -406,16 +103,12 @@ Do not pad with filler text. Use tables where structured data helps.
 # ── Knowledge base section builder ───────────────────────────────────────────────────
 
 def _build_kb_section(kb_context: dict | None) -> str:
-    """Build a formatted KB section to append to any stage prompt."""
     if not kb_context:
         return ""
-
     selected_ids: list[str] = kb_context.get("selected_sources", [])
     user_content: str = kb_context.get("user_content", "").strip()
-
     if not selected_ids and not user_content:
         return ""
-
     lines: list[str] = [
         "\n\n---",
         "## Knowledge Base & Citation Requirements",
@@ -428,13 +121,7 @@ def _build_kb_section(kb_context: dict | None) -> str:
         "If a required fact is not found in the sources below, flag it explicitly as: "
         "`[Unverified — requires validation against local data]`.",
         "",
-        "> **KNOWLEDGE BASE INTEGRATION**: For each stage output, include a "
-        "**Knowledge Base Integration** subsection that explicitly states which sources "
-        "informed which recommendations, and how the validated data shaped the technical "
-        "or commercial design decisions.",
-        "",
     ]
-
     if selected_ids:
         lines.append("### Pre-Validated Sources Available\n")
         for src_id in selected_ids:
@@ -448,33 +135,19 @@ def _build_kb_section(kb_context: dict | None) -> str:
             lines.append(f"- What it provides: {src['content']}")
             lines.append(f"- Cite as: `{src['citation']}`")
             lines.append("")
-
     if user_content:
         lines.append("### User-Provided Knowledge Base Content\n")
-        lines.append(
-            "The following content was provided by the user from a validated source. "
-            "Treat it as authoritative. "
-            "Cite as: `[User-Provided Source, Section/Page if indicated]`.\n"
-        )
         trimmed = user_content[:5000]
         if len(user_content) > 5000:
-            trimmed += "\n\n... [content truncated — agent should reference the full document]"
+            trimmed += "\n\n... [content truncated]"
         lines.append(f"```\n{trimmed}\n```\n")
-
     lines += [
         "### Deployment Context",
         "- **Pilot country**: Uganda (design all recommendations Uganda-first)",
         "- **Phase 2 markets**: Kenya, Tanzania, Rwanda",
         "- **Phase 3 markets**: Sudan, South Sudan, Zambia, Malawi, and Southern Africa",
-        "- All variety, breed, or practice recommendations must reference specific "
-        "**agro-ecological zones** in the relevant countries",
-        "- Where performance data differs by country, state this explicitly in a table",
-        "- If a validated source does not cover a specific country or crop, state: "
-        "`[Source not available for [Country/Crop] — user may upload validated local "
-        "data via the Knowledge Base upload feature in the ProSEIT Innovation Agent]`",
         "",
     ]
-
     return "\n".join(lines)
 
 
@@ -543,7 +216,6 @@ Produce:
 4. **Competitive Landscape** — 3-5 comparable solutions, gap analysis
 5. **Success Metrics** — KPIs with targets
 6. **Assumptions & Risks** — table with Risk | Likelihood | Impact | Mitigation
-7. **Knowledge Base Integration** — how validated sources from the knowledge base inform the concept and differentiate it from unvalidated alternatives
 """,
 
         "03_editions": f"""
@@ -576,7 +248,6 @@ Produce:
 5. **Integration Points** — external systems
 6. **Scalability Considerations** — for CE vs. Enterprise
 7. **Non-Functional Requirements** — performance, availability, disaster recovery
-8. **Knowledge Base Integration** — how validated agronomic/livestock data from the knowledge base is stored, queried, and surfaced within the architecture
 """,
 
         "05_user_stories": f"""
@@ -596,24 +267,147 @@ Include acceptance criteria for each MVP story.
 """,
 
         "06_ux_wireframes": f"""
-## Stage 06 · UX & Wireframes
+## Stage 06 · UIX Prototype Generator
 
-Design the user experience for the innovation.{prior_section}
+You are generating a complete, browsable Angular UIX prototype for the innovation described below.{prior_section}
 
-Produce:
-1. **UX Principles** — 3-5 design principles specific to this product and its users
-2. **User Journey Map** — table: Persona | Goal | Steps | Touchpoints | Pain Points
-3. **Key Screens** — for each major screen describe:
-   - Screen name and purpose
-   - Primary actions available
-   - Key data displayed
-   - Navigation options
-   Cover at minimum: Dashboard/Home, primary feature screens (MVP), settings/profile
-4. **Navigation Architecture** — describe the top-level navigation structure and routing
-5. **Responsive Breakpoints** — desktop, tablet, mobile behaviour differences
-6. **Accessibility Requirements** — WCAG 2.1 AA compliance items relevant to this product
-7. **Angular 18 Component List** — map each screen to Angular components (standalone components preferred)
-8. **Wireframe Descriptions** — ASCII or prose wireframe for the 2-3 most critical screens
+**Innovation Idea:**
+{idea}
+
+---
+
+### OUTPUT FORMAT — CRITICAL
+
+Output EVERY file using this exact delimiter format. Do NOT use markdown code fences. Use ONLY the delimiters:
+
+===UIX_FILE: [filename] ===
+[complete file content]
+===UIX_END===
+
+Generate ALL of the following files in order:
+
+1. `a/s.css` — Master stylesheet
+2. `a/j.js` — Master JavaScript
+3. `i.html` — Dashboard / Home screen
+4. `p1.html` — Primary feature screen 1
+5. `p2.html` — Primary feature screen 2
+6. `p3.html` — Primary feature screen 3
+7. `p4.html` — Primary feature screen 4
+8. `p5.html` — Primary feature screen 5
+9. `p6.html` — Secondary feature / list screen
+10. `p7.html` — Detail / form screen
+11. `p8.html` — Reports / analytics screen
+12. `g.html` — Global settings / configuration
+13. `s.html` — Superadmin / system admin panel
+14. `readme.md` — Developer handover notes
+
+---
+
+### DESIGN REQUIREMENTS
+
+#### Brand & Colours
+- Primary Navy: `#24364B`
+- Gold Accent: `#D4A62A`
+- White: `#FFFFFF`
+- Soft Grey: `#F4F6F8`
+- Dark Text: `#1F2933`
+- Sidebar background: `#24364B`, sidebar text: `#FFFFFF`, active item: `#D4A62A`
+- Top bar: Navy with Gold accent strip
+- All buttons: primary = Navy bg + White text; accent = Gold bg + Dark text
+
+#### Layout (all pages)
+- Fixed left sidebar (240px wide) with navigation links to ALL pages (i.html, p1–p8, g.html, s.html)
+- Top navbar with: ProSEIT logo text, page title, user avatar chip, notification bell
+- Main content area with padding 24px
+- Footer bar: `ProSEIT · Plot 5 Blue Heights Plaza, Nkrumah Road, Kampala, Uganda | Tel: +256 790 334 653 | www.proseit.org | info@proseit.org`
+- Fully responsive: sidebar collapses to hamburger on mobile (<768px)
+
+#### Angular Material Simulation
+- Use plain HTML + CSS to simulate Angular Material components:
+  - `mat-card`: white card, 2px border-left gold, box-shadow 0 2px 8px rgba(0,0,0,0.08)
+  - `mat-table`: striped rows, navy header, gold sort arrows
+  - `mat-button`: rounded 4px, ripple effect via CSS :active
+  - `mat-chip`: small pill badges for status (Active=green, Pending=gold, Inactive=grey)
+  - `mat-form-field`: underline-style inputs with gold focus ring
+  - `mat-toolbar`: top bar component
+  - `mat-sidenav`: sidebar component
+  - `mat-dialog`: modal overlay (trigger via JS)
+  - `mat-snackbar`: toast notification at bottom
+  - `mat-progress-bar`: gold/navy gradient progress bar
+  - `mat-tab`: tab strip with gold underline on active tab
+
+#### ERPNext/Frappe Backend Mapping
+On each feature page (p1–p8), include a **Developer Handover Panel** — a collapsible `<details>` element at the bottom of the page styled in soft grey with navy border, containing:
+- **DocType(s)**: which Frappe DocTypes this screen maps to
+- **API Endpoints**: `frappe.call` method names or REST paths (GET/POST)
+- **Key Fields**: field names and types from the DocType
+- **Permissions**: which Frappe roles can access this screen
+- **Custom App**: which custom Frappe app this module belongs to
+- **Angular Component**: component name (e.g. `FeatureListComponent`), selector, module
+- **Routing**: Angular route path (e.g. `/app/feature/list`)
+- **Data Binding**: key `@Input()` and `@Output()` bindings
+
+#### Dashboard (i.html) Requirements
+- 4 KPI stat cards at top (use realistic numbers for this innovation domain)
+- 2 charts simulated with CSS bars or SVG (bar chart + line/donut)
+- Recent activity feed (5 items)
+- Quick action buttons panel
+- Alerts/notifications section
+
+#### Realistic Sample Data
+- Populate ALL tables, lists, and forms with 5–8 rows of realistic, domain-specific sample data relevant to this innovation
+- Use Uganda/East Africa context for names, locations, currencies (UGX), dates
+
+#### Screen-Specific Naming
+Name each p1–p8 screen based on the MVP user stories from Stage 05 and the architecture from Stage 04. If prior stages are not available, derive screen names from the innovation idea.
+
+#### Settings (g.html)
+- System settings: organisation name, logo upload placeholder, currency, timezone, language
+- Notification settings: email/SMS toggles
+- Integration settings: API key fields (masked)
+- Edition badge showing current edition (CE/PE/E-C/E-O)
+
+#### Superadmin (s.html)
+- User management table with roles
+- Tenant/organisation list (for E-C edition)
+- System health dashboard (CPU, memory, DB size — simulated)
+- Audit log table
+- Licence key management
+
+#### JavaScript (a/j.js)
+- Sidebar toggle for mobile
+- Tab switching logic
+- Modal open/close
+- Toast notification function `showToast(message, type)`
+- Simple search/filter for tables
+- Chart rendering using inline SVG or canvas (no external chart library)
+- Form validation helpers
+- All JS must be vanilla (no jQuery, no frameworks)
+
+#### CSS (a/s.css)
+- Full reset + box-sizing
+- CSS custom properties (variables) for all brand colours
+- Sidebar, navbar, main content layout using CSS Grid
+- All Angular Material component simulations
+- Responsive breakpoints at 768px and 480px
+- Print styles hiding sidebar and navbar
+- Smooth transitions on sidebar collapse and modal
+
+#### readme.md
+Produce a developer handover document with:
+1. **Project Overview** — product name, innovation ID, tech stack
+2. **File Structure** — annotated list of all files
+3. **Navigation Map** — table: File | Screen Name | Angular Component | Route
+4. **DocType Map** — table: Screen | DocType(s) | Custom App
+5. **Edition Feature Matrix** — which screens/features are CE vs PE vs Enterprise
+6. **Getting Started** — steps to integrate into Frappe/Angular app
+7. **Design Tokens** — list all CSS variables with their values
+8. **Known Limitations** — what this prototype does not include
+9. **Next Steps** — 5 concrete development actions
+
+---
+
+Generate complete, production-quality HTML/CSS/JS. Every file must be fully self-contained (linking to `a/s.css` and `a/j.js`). Do not truncate any file. Output all 14 files in order.
 """,
 
         "07_data_model": f"""
@@ -629,13 +423,12 @@ Produce:
    |---|---|---|---|---|
 
    Include all custom doctypes required. Note which are child tables.
-3. **Standard Frappe Doctypes Used** — list existing Frappe/ERPNext doctypes leveraged (Customer, User, etc.)
+3. **Standard Frappe Doctypes Used** — list existing Frappe/ERPNext doctypes leveraged
 4. **Data Validation Rules** — key constraints, regex patterns, range checks
 5. **Indexing Strategy** — which fields need database indexes and why
-6. **Data Migration Plan** — if migrating from existing systems, describe the migration approach
-7. **Data Retention & Archival Policy** — per entity, how long data is kept and archival rules
-8. **Multi-tenancy Considerations** — how data is isolated between organisations (CE vs. E-C)
-9. **Knowledge Base Integration** — how validated variety/breed/practice data from the knowledge base is modelled (e.g. a KnowledgeBase DocType, variety lookup tables, citation fields)
+6. **Data Migration Plan** — if migrating from existing systems
+7. **Data Retention & Archival Policy** — per entity
+8. **Multi-tenancy Considerations** — how data is isolated between organisations
 """,
 
         "08_api_design": f"""
@@ -650,14 +443,12 @@ Produce:
    | Method | Endpoint | Description | Auth Required | Request Body | Response |
    |---|---|---|---|---|---|
 
-   Group by resource (e.g. /api/v1/innovations/, /api/v1/users/)
 3. **Authentication & Authorisation** — Frappe session tokens, API keys, OAuth2 flows
-4. **Request / Response Schemas** — JSON schema for key endpoints (create, read, update)
+4. **Request / Response Schemas** — JSON schema for key endpoints
 5. **Error Codes** — table: HTTP Code | Error Type | Message | Resolution
-6. **Rate Limiting** — limits per tier (CE / PE / Enterprise), headers returned
-7. **Pagination** — strategy (cursor vs. offset), default page size, max page size
-8. **API Versioning** — how breaking changes will be managed
-9. **Frappe Hooks Used** — list relevant `hooks.py` entries (doc_events, override_whitelisted_methods, etc.)
+6. **Rate Limiting** — limits per tier, headers returned
+7. **Pagination** — strategy, default page size, max page size
+8. **Frappe Hooks Used** — list relevant `hooks.py` entries
 """,
 
         "09_integrations": f"""
@@ -667,17 +458,12 @@ Define all integration requirements.{prior_section}
 
 Produce:
 1. **Integration Inventory** — table: System | Type | Direction | Protocol | Auth | Priority | Edition
-2. **ERPNext Native Integrations** — which Frappe integrations apply out-of-the-box (e.g. Email, SMS, Payment Gateways)
-3. **Custom Integration Specs** — for each custom integration:
-   - Endpoint URL pattern
-   - Payload schema (request + response)
-   - Error handling and retry logic
-   - Frequency / trigger
+2. **ERPNext Native Integrations** — which Frappe integrations apply out-of-the-box
+3. **Custom Integration Specs** — for each custom integration: endpoint, payload schema, error handling, frequency
 4. **Webhook Events** — table: Event Name | Trigger | Payload Fields | Consumers
 5. **Third-Party Services** — table: Service | Purpose | Free Tier | Paid Tier | Data Shared
-6. **API Rate Limits & SLAs** — per integration, what limits apply
-7. **Integration Testing Plan** — how each integration will be tested (mocks, sandbox, live)
-8. **Fallback Behaviour** — what happens when each integration is unavailable
+6. **Integration Testing Plan** — how each integration will be tested
+7. **Fallback Behaviour** — what happens when each integration is unavailable
 """,
 
         "10_security": f"""
@@ -687,19 +473,14 @@ Produce a comprehensive security design for the innovation.{prior_section}
 
 Produce:
 1. **Threat Model** — table: Threat | Attack Vector | Likelihood | Impact | Control
-   Cover: authentication bypass, data exfiltration, injection, privilege escalation, DoS
-2. **OWASP Top 10 Mitigations** — for each OWASP item, state the specific control implemented
-3. **Authentication & Session Management** — password policy, MFA requirements, session timeout, token rotation
-4. **Authorisation Model** — Frappe roles and permissions matrix:
-
-   | Role | DocType | Read | Write | Create | Delete | Submit |
-   |---|---|---|---|---|---|---|
-
-5. **Data Protection** — encryption at rest (fields, backups), encryption in transit (TLS config)
-6. **Input Validation & Sanitisation** — key validation rules, XSS/SQLi prevention approach
-7. **Audit Logging** — what events are logged, log format, retention period
-8. **Vulnerability Management** — dependency scanning, patching cadence, penetration testing schedule
-9. **Compliance Mapping** — how controls map to GDPR / Uganda DPA / ISO 27001 (where applicable)
+2. **OWASP Top 10 Mitigations** — specific control per OWASP item
+3. **Authentication & Session Management** — password policy, MFA, session timeout, token rotation
+4. **Authorisation Model** — Frappe roles and permissions matrix
+5. **Data Protection** — encryption at rest and in transit
+6. **Input Validation & Sanitisation** — key validation rules, XSS/SQLi prevention
+7. **Audit Logging** — what events are logged, format, retention period
+8. **Vulnerability Management** — dependency scanning, patching cadence
+9. **Compliance Mapping** — GDPR / Uganda DPA / ISO 27001
 10. **Security Testing Plan** — SAST, DAST, manual review checkpoints
 """,
 
@@ -709,20 +490,20 @@ Produce:
 Define the complete testing strategy for the innovation.{prior_section}
 
 Produce:
-1. **Testing Pyramid** — describe the balance of unit / integration / E2E tests for this product
+1. **Testing Pyramid** — balance of unit / integration / E2E tests
 2. **Unit Tests** — table: Module | Function/Method | Test Cases | Edge Cases
 3. **Integration Tests** — table: Component A | Component B | Test Scenario | Expected Outcome
 4. **API Tests** — table: Endpoint | Method | Input | Expected Status | Expected Body
-5. **End-to-End (E2E) Tests** — key user journeys to automate (use Playwright or Cypress):
+5. **End-to-End (E2E) Tests** — key user journeys (Playwright or Cypress):
 
    | Journey | Steps | Pass Criteria |
    |---|---|---|
 
-6. **Performance Tests** — load targets, tools (Locust / k6), scenarios (normal load, spike, soak)
+6. **Performance Tests** — load targets, tools (Locust / k6), scenarios
 7. **UAT Plan** — user acceptance test scenarios, tester personas, sign-off criteria
 8. **Test Data Strategy** — how test data is created, anonymised, and seeded
-9. **CI/CD Test Gates** — which test suites must pass before merge, before deploy to staging, before production
-10. **Defect Management** — severity definitions, SLA for fix, tracking tool
+9. **CI/CD Test Gates** — which suites must pass before merge / deploy to staging / production
+10. **Defect Management** — severity definitions, SLA for fix
 """,
 
         "12_deployment": f"""
@@ -732,25 +513,18 @@ Design the deployment architecture and CI/CD pipeline.{prior_section}
 
 Produce:
 1. **Environment Strategy** — table: Environment | Purpose | Branch | Auto-deploy? | Data
-   (Development, Staging, UAT, Production — for CE and Enterprise separately where different)
-2. **Infrastructure Design** — for each environment describe:
-   - Cloud provider / hosting (recommend AWS / GCP / on-premise for Uganda context)
-   - Compute: VMs, containers, or Kubernetes
-   - Database: managed or self-hosted MariaDB
-   - Storage: file attachments, backups
-   - CDN / load balancer
+2. **Infrastructure Design** — for each environment: cloud provider, compute, database, storage, CDN
 3. **Frappe Bench Setup** — bench commands, app installation sequence, site creation
-4. **CI/CD Pipeline** — describe the pipeline stages (GitHub Actions recommended):
+4. **CI/CD Pipeline** — pipeline stages (GitHub Actions):
 
    | Stage | Trigger | Steps | Failure Action |
    |---|---|---|---|
 
 5. **Docker / Container Strategy** — Dockerfile structure, docker-compose for local dev
-6. **Infrastructure as Code** — tools (Terraform / Ansible), key resources defined
-7. **Zero-Downtime Deployment** — blue-green or rolling strategy for production updates
-8. **Rollback Plan** — how to revert a bad deployment within 15 minutes
-9. **Backup & Disaster Recovery** — backup frequency, RTO, RPO, restore procedure
-10. **Monitoring & Alerting** — tools (Prometheus/Grafana, Sentry), key metrics and alert thresholds
+6. **Zero-Downtime Deployment** — blue-green or rolling strategy
+7. **Rollback Plan** — how to revert a bad deployment within 15 minutes
+8. **Backup & Disaster Recovery** — backup frequency, RTO, RPO, restore procedure
+9. **Monitoring & Alerting** — tools, key metrics, alert thresholds
 """,
 
         "13_documentation": f"""
@@ -760,36 +534,12 @@ Define the complete documentation plan for the innovation.{prior_section}
 
 Produce:
 1. **Documentation Inventory** — table: Document | Audience | Format | Owner | Review Cycle
-
-2. **Technical Documentation** — outline the structure of:
-   - Architecture Decision Records (ADRs) — list the 5 most important decisions to record
-   - Developer Setup Guide — key sections
-   - API Reference — how it will be generated (auto from docstrings / OpenAPI spec)
-   - Database Schema Reference
-
-3. **User Documentation** — outline the structure of:
-   - User Manual (by role/persona)
-   - Quick Start Guide
-   - FAQ (list the 10 most likely user questions)
-   - Video tutorial topics (list 5 key tutorials)
-
-4. **Administrator Documentation** — outline:
-   - Installation & Configuration Guide (CE edition)
-   - Enterprise Deployment Guide
-   - Backup & Recovery Runbook
-   - User Management Guide
-
-5. **ProSEIT Governance Documentation** — outline:
-   - Governance Submission Pack (for committee review)
-   - Change Control Procedure
-
-6. **Knowledge Base Documentation** — outline:
-   - Knowledge Base Source Registry (list of all validated sources, access method, citation format)
-   - Knowledge Base Update Procedure (how to add new validated sources)
-   - Citation Standards Guide (for all outputs referencing KB sources)
-
-7. **Documentation Toolchain** — recommended tools (MkDocs, Docusaurus, Sphinx), hosting (GitHub Pages / ReadTheDocs)
-8. **Localisation Plan** — languages to support (include Luganda, Swahili for East Africa), translation workflow
+2. **Technical Documentation** — outline: ADRs, Developer Setup Guide, API Reference, DB Schema
+3. **User Documentation** — outline: User Manual, Quick Start Guide, FAQ (10 questions), Video topics
+4. **Administrator Documentation** — outline: Installation Guide, Enterprise Deployment, Backup Runbook
+5. **ProSEIT Governance Documentation** — Governance Submission Pack, Change Control Procedure
+6. **Documentation Toolchain** — recommended tools, hosting
+7. **Localisation Plan** — languages (include Luganda, Swahili), translation workflow
 """,
 
         "14_budget": f"""
@@ -874,9 +624,8 @@ Sections:
    - Financial Viability
 4. **Top 10 Action Items** — table: Action | Owner Role | Due | Priority
 5. **Document Index** — list all artefacts produced in this pipeline run
-6. **Knowledge Base Sources Cited** — table: Source | Citation | Stages Used In
-7. **Recommended Next Steps** — three concrete steps the ProSEIT team should take this week
-8. **Sign-off Block** — placeholders for Prepared By / Approved By / Date
+6. **Recommended Next Steps** — three concrete steps the ProSEIT team should take this week
+7. **Sign-off Block** — placeholders for Prepared By / Approved By / Date
 """,
     }
 
@@ -892,12 +641,9 @@ Produce a thorough, actionable output for this stage following ProSEIT standards
 """
 
     prompt = prompts.get(stage, default_prompt).strip()
-
-    # Append KB section for all stages when agriculture context is present
     kb_section = _build_kb_section(kb_context)
     if kb_section:
         prompt = prompt + kb_section
-
     return prompt
 
 
@@ -910,7 +656,6 @@ def run_pipeline(
     progress_cb: Callable[[str, float], None] | None = None,
     kb_context: dict | None = None,
 ) -> dict[str, str]:
-    """Run selected pipeline stages and return results dict."""
     selected = stages or STAGES
     results: dict[str, str] = {}
     context: dict[str, str] = {}
@@ -918,7 +663,6 @@ def run_pipeline(
     for i, stage in enumerate(selected):
         if progress_cb:
             progress_cb(STAGE_LABELS.get(stage, stage), i / len(selected))
-
         prompt = _prompt_for_stage(stage, idea, context, kb_context=kb_context)
         output = call_claude(prompt, system=SYSTEM_PROMPT, api_key=api_key)
         results[stage] = output
@@ -926,5 +670,4 @@ def run_pipeline(
 
     if progress_cb:
         progress_cb("Complete", 1.0)
-
     return results

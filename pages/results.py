@@ -5,9 +5,9 @@ import json
 import streamlit as st
 from pipeline.runner import STAGE_LABELS
 from pipeline.document_builder import (
-    STAGE_DELIVERABLES, EXCEL_STAGES, PPTX_STAGES,
+    STAGE_DELIVERABLES, EXCEL_STAGES, PPTX_STAGES, UIX_STAGES,
     build_word_doc, build_excel_doc, build_pptx_doc,
-    build_stage_zip, build_full_zip,
+    build_stage_zip, build_full_zip, build_uix_zip, parse_uix_files,
 )
 from ui.brand import NAVY, GOLD, WHITE
 from ui.components import page_title, section_bar, banner, page_footer
@@ -31,9 +31,36 @@ def _stage_dl_row(stage: str, content: str, title: str, key_prefix: str) -> None
         f'<div style="font-size:0.85rem;font-weight:700;color:{NAVY};'
         f'padding:0.5rem 0 0.15rem">{lbl}</div>'
         f'<div style="font-size:0.72rem;color:rgba(36,54,75,0.5);'
-        f'margin-bottom:0.35rem">{" · ".join(deliverables)}</div>',
+        f'margin-bottom:0.35rem">{", ".join(deliverables)}</div>',
         unsafe_allow_html=True,
     )
+
+    # UIX stage gets a prominent prototype pack button first
+    if stage in UIX_STAGES:
+        files = parse_uix_files(content)
+        file_count = len(files)
+        uix_label = f"🌐 UIX Prototype Pack ({file_count} files)" if file_count else "🌐 UIX Prototype Pack"
+        try:
+            slug = title[:28].replace(" ", "_")
+            c1, c2 = st.columns([3, 4])
+            with c1:
+                st.download_button(
+                    uix_label,
+                    data=build_uix_zip(stage, lbl, content, title),
+                    file_name=f"{stage}_{slug}_uix_prototype.zip",
+                    mime="application/zip",
+                    key=f"{key_prefix}_uix_{stage}",
+                    use_container_width=True,
+                    type="primary",
+                )
+        except Exception as e:
+            st.error(f"UIX ZIP error: {e}")
+        st.markdown(
+            '<div style="font-size:0.72rem;color:rgba(36,54,75,0.5);'
+            'margin-bottom:0.4rem">Extract ZIP and open <code>launch.html</code> in browser</div>',
+            unsafe_allow_html=True,
+        )
+
     ncols = 1 + (1 if stage in EXCEL_STAGES else 0) + (1 if stage in PPTX_STAGES else 0) + 1
     cols = st.columns(ncols + [2])  # trailing spacer
     ci = 0
@@ -172,7 +199,7 @@ def render() -> None:
             "07_data_model", "08_api_design", "09_integrations",
             "10_security", "11_testing", "12_deployment")]),
         ("📦 Editions",    [s for s in stage_keys if s in ("03_editions",)]),
-        ("\ud83d� Business",    [s for s in stage_keys if s in (
+        ("💰 Business",    [s for s in stage_keys if s in (
             "13_documentation", "14_budget", "15_business_plan")]),
         ("🏗️ Governance", [s for s in stage_keys if s in ("16_governance",)]),
         ("🗺️ Roadmap",    [s for s in stage_keys if s in ("17_roadmap", "18_package")]),
@@ -191,6 +218,7 @@ def render() -> None:
                     "Each stage is available as a branded <strong>Word document</strong>. "
                     "Data-heavy stages also include <strong>Excel</strong>. "
                     "Key stages include <strong>PowerPoint</strong>. "
+                    "Stage 06 includes a browsable <strong>Angular UIX Prototype</strong>. "
                     "Download a single format or the per-stage ZIP.",
                     kind="info",
                 )
@@ -206,7 +234,27 @@ def render() -> None:
                 content = results.get(stage, "")
                 slabel = STAGE_LABELS.get(stage, stage)
                 with st.expander(slabel, expanded=(stage == sts[0])):
-                    st.markdown(content)
+                    # UIX stage: show file inventory instead of raw content
+                    if stage in UIX_STAGES:
+                        files = parse_uix_files(content)
+                        if files:
+                            st.markdown(
+                                f"**UIX Prototype contains {len(files)} files:**  \n"
+                                + "  \n".join(f"- `{fn}`" for fn in sorted(files.keys()))
+                            )
+                            st.markdown(
+                                f'<div style="margin-top:0.5rem;padding:0.6rem 0.8rem;'
+                                f'background:#f4f6f8;border-left:3px solid #D4A62A;'
+                                f'border-radius:4px;font-size:0.8rem;color:#1F2933">'
+                                f'💡 Download the <strong>UIX Prototype Pack</strong> below '
+                                f'and open <code>launch.html</code> in your browser to browse '
+                                f'the interactive prototype.</div>',
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.markdown(content)
+                    else:
+                        st.markdown(content)
                     st.markdown("<br>", unsafe_allow_html=True)
                     _stage_dl_row(stage, content, title, f"exp_{stage}")
 
