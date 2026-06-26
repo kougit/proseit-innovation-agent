@@ -104,16 +104,13 @@ def build_uix_zip(stage: str, stage_label: str, content: str, innov_title: str) 
     """Build a browsable UIX prototype ZIP from Claude's delimited output."""
     files = parse_uix_files(content)
     buf = io.BytesIO()
-    slug = innov_title[:40].replace(" ", "_")
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         if files:
             for filename, file_content in files.items():
                 zf.writestr(f"uix_prototype/{filename}", file_content)
         else:
-            # Fallback: package raw content as readme if no delimiters found
             zf.writestr("uix_prototype/readme.md", content)
 
-        # Always include a launch index that opens i.html
         launch_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -144,7 +141,6 @@ def build_uix_zip(stage: str, stage_label: str, content: str, innov_title: str) 
 </html>"""
         zf.writestr("uix_prototype/launch.html", launch_html)
 
-        # Manifest
         file_list = "\n".join(f"- {fn}" for fn in sorted(files.keys())) if files else "(no structured files found)"
         manifest = f"""# {innov_title} — UIX Prototype Pack
 
@@ -480,7 +476,9 @@ def _build_uix_screen_map(content: str) -> list[list[str]]:
         "a/j.js": ("Master JavaScript", "N/A", "N/A"),
         "readme.md": ("Developer Handover", "N/A", "N/A"),
     }
-    for fname in sorted(files.keys()) if files else sorted(screen_names.keys()):
+    # Fixed: assign to variable first, then iterate
+    fname_list = sorted(files.keys()) if files else sorted(screen_names.keys())
+    for fname in fname_list:
         info = screen_names.get(fname, (fname, "CustomComponent", "/app/custom"))
         screen_map.append([fname, info[0], info[1], info[2], "[see Developer Handover Panel]"])
     return screen_map
@@ -503,7 +501,6 @@ def build_excel_doc(
         ws["A3"].font = XLFont(size=8, color="888888", name="Calibri")
         ws.row_dimensions[1].height = 18
 
-    # For UIX stage, add a screen mapping sheet first
     if stage in UIX_STAGES:
         ws_map = wb.create_sheet("Screen Map")
         _title_rows(ws_map)
@@ -520,7 +517,6 @@ def build_excel_doc(
             ws_map.column_dimensions[col].width = 24
         ws_map.freeze_panes = "A6"
 
-        # Components sheet
         ws_comp = wb.create_sheet("Angular Components")
         _title_rows(ws_comp)
         comp_rows = [
@@ -544,7 +540,6 @@ def build_excel_doc(
             ws_comp.column_dimensions[get_column_letter(ci)].width = 22
         ws_comp.freeze_panes = "A6"
 
-        # Edition matrix sheet
         ws_ed = wb.create_sheet("Edition Matrix")
         _title_rows(ws_ed)
         ed_rows = [
