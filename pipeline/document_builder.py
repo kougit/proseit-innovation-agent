@@ -821,7 +821,9 @@ def build_excel_doc(
 
 def _pptx_run(tf, text: str, size: int, color: PRGBColor,
              bold: bool = False, italic: bool = False,
-             align: PP_ALIGN = PP_ALIGN.LEFT) -> None:
+             align=None) -> None:
+    if align is None:
+        align = PP_ALIGN.LEFT
     para = tf.add_paragraph()
     para.alignment = align
     run = para.add_run()
