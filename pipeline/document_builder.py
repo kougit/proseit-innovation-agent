@@ -721,7 +721,6 @@ def build_excel_doc(
             ws_ed.freeze_panes = "A6"
 
     if stage not in UIX_STAGES:
-
         if not tables:
             ws = wb.create_sheet("Content")
             _title_rows(ws)
