@@ -1,1 +1,1 @@
-See /tmp/file_content_encoded.json
+"""\nProSEIT Innovation Agent — Document Builder\n\nConverts Claude-generated markdown stage outputs into branded:\n  • Word documents (.docx)     — all stages\n  • Excel workbooks (.xlsx)    — data/table-
