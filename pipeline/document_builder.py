@@ -14,7 +14,7 @@ import re
 import zipfile
 from datetime import date as _date
 
-# ── openpyxl: top-level import (needed for module-level _XL_HDR constant) ────
+# ── Third-party imports (all top-level — safe, no C deps except cairosvg removed) ──
 from openpyxl import Workbook
 from openpyxl.styles import (
     Font as XLFont, PatternFill as XLFill,
@@ -22,50 +22,38 @@ from openpyxl.styles import (
 )
 from openpyxl.utils import get_column_letter
 
-# ── Lazy imports: docx and pptx deferred to first use ────────────────────────
-def _docx_imports():
-    global Document, Inches, Pt, WRGBColor, Cm, WD_ALIGN_PARAGRAPH, qn, OxmlElement
-    global NAVY, _WN, _WG, _WW, _WGR, _WDT
-    from docx import Document
-    from docx.shared import Inches, Pt, RGBColor as WRGBColor, Cm
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-    NAVY = WRGBColor(0x24, 0x36, 0x4B)
-    _WN = NAVY
-    _WG = WRGBColor(0xD4, 0xA6, 0x2A)
-    _WW = WRGBColor(0xFF, 0xFF, 0xFF)
-    _WGR = WRGBColor(0xF4, 0xF6, 0xF8)
-    _WDT = WRGBColor(0x1F, 0x29, 0x33)
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor as WRGBColor, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
-def _pptx_imports():
-    global Presentation, PIn, PPt, PRGBColor, PP_ALIGN
-    global _PN, _PG, _PW, _PDT, _PGR
-    from pptx import Presentation
-    from pptx.util import Inches as PIn, Pt as PPt
-    from pptx.dml.color import RGBColor as PRGBColor
-    from pptx.enum.text import PP_ALIGN
-    _PN = PRGBColor(0x24, 0x36, 0x4B)
-    _PG = PRGBColor(0xD4, 0xA6, 0x2A)
-    _PW = PRGBColor(0xFF, 0xFF, 0xFF)
-    _PDT = PRGBColor(0x1F, 0x29, 0x33)
-    _PGR = PRGBColor(0x88, 0x88, 0x88)
+from pptx import Presentation
+from pptx.util import Inches as PIn, Pt as PPt
+from pptx.dml.color import RGBColor as PRGBColor
+from pptx.enum.text import PP_ALIGN
 
-def _cairo_imports():
-    global _cairosvg, _HAS_CAIRO
-    try:
-        import cairosvg as _cairosvg
-        _HAS_CAIRO = True
-    except Exception:
-        _HAS_CAIRO = False
+# cairosvg: optional — graceful fallback when unavailable
+try:
+    import cairosvg as _cairosvg
+    _HAS_CAIRO = True
+except Exception:
+    _cairosvg = None
+    _HAS_CAIRO = False
 
-# Sentinels for lazy-loaded names
-Document = Inches = Pt = WRGBColor = Cm = WD_ALIGN_PARAGRAPH = qn = OxmlElement = None
-NAVY = _WN = _WG = _WW = _WGR = _WDT = None
-Presentation = PIn = PPt = PRGBColor = PP_ALIGN = None
-_PN = _PG = _PW = _PDT = _PGR = None
-_cairosvg = None
-_HAS_CAIRO = False
+# ── Brand colours ──────────────────────────────────────────────────────────────
+NAVY = WRGBColor(0x24, 0x36, 0x4B)
+_WN = NAVY
+_WG = WRGBColor(0xD4, 0xA6, 0x2A)
+_WW = WRGBColor(0xFF, 0xFF, 0xFF)
+_WGR = WRGBColor(0xF4, 0xF6, 0xF8)
+_WDT = WRGBColor(0x1F, 0x29, 0x33)
+
+_PN = PRGBColor(0x24, 0x36, 0x4B)
+_PG = PRGBColor(0xD4, 0xA6, 0x2A)
+_PW = PRGBColor(0xFF, 0xFF, 0xFF)
+_PDT = PRGBColor(0x1F, 0x29, 0x33)
+_PGR = PRGBColor(0x88, 0x88, 0x88)
 
 PROSEIT_CONTACT = (
     "ProSEIT · Plot 5 Blue Heights Plaza, Nkrumah Road, Kampala, Uganda"
@@ -165,7 +153,6 @@ _LOGO_SVG = b"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 
 def _logo_png_bytes(width_px: int = 200) -> bytes | None:
     """Render logo SVG to PNG bytes. Returns None if cairosvg unavailable."""
-    _cairo_imports()
     if not _HAS_CAIRO:
         return None
     try:
@@ -540,7 +527,6 @@ def _render_to_docx(doc: Document, tokens: list[tuple[str, str]]) -> None:
 def build_word_doc(
     stage: str, stage_label: str, content: str, innov_title: str
 ) -> bytes:
-    _docx_imports()
     doc = Document()
     for section in doc.sections:
         section.top_margin = Cm(2.5)
@@ -846,7 +832,6 @@ def _pptx_rect(slide, left, top, width, height, fill_color: PRGBColor):
 def build_pptx_doc(
     stage: str, stage_label: str, content: str, innov_title: str
 ) -> bytes:
-    _pptx_imports()
     prs = Presentation()
     prs.slide_width = PIn(13.33)
     prs.slide_height = PIn(7.5)
